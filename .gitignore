@@ -1,0 +1,60 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.sqlite3
+*.db
+*.db-journal
+*.log
+
+# Entorno virtual
+venv/
+env/
+ENV/
+.venv/
+
+# Archivos de configuración locales
+*.env
+.env.*
+*.ini
+*.cfg
+
+# Migraciones y bases locales (si no quieres subirlas)
+migrations/
+db.sqlite
+
+# === Node / JS ===
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+package-lock.json
+yarn.lock
+
+# Build
+dist/
+build/
+.cache/
+*.tgz
+
+# === IDEs ===
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# === OS ===
+.DS_Store
+Thumbs.db
+
+# === Otros específicos ===
+# Archivos zip temporales
+*.zip
+*.tar
+*.tar.gz
+*.rar
+
+# Archivos del proyecto que no deben publicarse
+____otros/
