@@ -1,0 +1,19 @@
+{% extends 'layouts/horizontal/base_horizontal.html' %}
+{% block title %} Horizontal Preloader Layout{% endblock title %}
+{% block body %}
+<body data-topbar="dark" data-layout="horizontal">
+
+    <!-- Loader -->
+    <div id="preloader">
+        <div id="status">
+            <div class="spinner-chase">
+                <div class="chase-dot"></div>
+                <div class="chase-dot"></div>
+                <div class="chase-dot"></div>
+                <div class="chase-dot"></div>
+                <div class="chase-dot"></div>
+                <div class="chase-dot"></div>
+            </div>
+        </div>
+    </div>
+{% endblock body %}

@@ -1,0 +1,332 @@
+{% extends 'partials/base.html' %}
+{% block title %}Flowchart de {{ journey.nombre }}{% endblock title %}
+
+{% block content %}
+
+<!-- CSRF para consumo vía JS -->
+<meta name="csrf-token" content="{{ csrf_token() }}"/>
+
+<div class="row">
+  <div class="col-12">
+    <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+      <h4 class="mb-sm-0 font-size-18">Flowchart de: {{ journey.nombre }}</h4>
+      <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+          <li class="breadcrumb-item"><a href="{{ url_for('leadjourney.list_journeys') }}">Journeys</a></li>
+          <li class="breadcrumb-item active">{{ journey.nombre }}</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h4 class="card-title mb-0">Editor de Nodos (jsPlumb)</h4>
+          <div class="btn-toolbar">
+            <button id="add-node-btn"
+                    class="btn btn-success waves-effect waves-light"
+                    data-bs-toggle="modal"
+                    data-bs-target="#nodeModal"
+                    type="button">
+              <i class="fas fa-plus me-2"></i> Agregar Nodo
+            </button>
+          </div>
+        </div>
+
+        <!-- Contenedor principal de jsPlumb -->
+        <div id="jsplumb-canvas"
+             class="jsplumb-container"
+             role="region"
+             aria-label="Editor visual de journey"
+             data-journey-id="{{ journey.id }}"
+             data-url-journey-data="{{ url_for('leadjourney.journey_data', journey_id=journey.id) }}"
+             data-url-save-positions="{{ url_for('leadjourney.save_positions') }}"
+             data-url-create-node="{{ url_for('leadjourney.create_node') }}"
+             data-url-node-base="{{ url_for('leadjourney.get_node', node_id=9999) }}"
+             data-url-branch-base="{{ url_for('leadjourney.get_branch', branch_id=9999) }}"
+             data-url-create-conn="{{ url_for('leadjourney.create_connection') }}"
+             data-url-delete-conn="{{ url_for('leadjourney.delete_connection') }}">
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Crear Nodo -->
+<div class="modal fade" id="nodeModal" tabindex="-1" aria-labelledby="nodeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="nodeModalLabel">Crear Nuevo Nodo</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <form id="nodeForm" method="post" action="#" autocomplete="off">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="journey_id" value="{{ journey.id }}">
+
+          <div class="mb-3">
+            <label for="node-name" class="form-label">Nombre del Nodo</label>
+            <input type="text" class="form-control" id="node-name" name="nombre" required maxlength="255">
+          </div>
+
+          <div class="mb-3">
+            <label for="node-prompt" class="form-label">Prompt del Agente</label>
+            <textarea class="form-control" id="node-prompt" name="prompt_agent" rows="6" required></textarea>
+          </div>
+
+          <div class="mb-3">
+            <label for="node-condition" class="form-label">Condición de Cumplimiento</label>
+            <input type="text" class="form-control" id="node-condition" name="completion_condition"
+                   placeholder="Ej: documento_subido == true">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" form="nodeForm" class="btn btn-primary" id="save-node-btn">Guardar Nodo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Editar Nodo -->
+<div class="modal fade" id="editNodeModal" tabindex="-1" aria-labelledby="editNodeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editNodeModalLabel">Editar Nodo</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editNodeForm" method="post" action="#" autocomplete="off">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" id="edit-node-id" name="node_id">
+
+          <div class="mb-3">
+            <label for="edit-node-name" class="form-label">Nombre del Nodo</label>
+            <input type="text" class="form-control" id="edit-node-name" name="nombre" required maxlength="255">
+          </div>
+
+          <div class="mb-3">
+            <label for="edit-node-prompt" class="form-label">Prompt del Agente</label>
+            <textarea class="form-control" id="edit-node-prompt" name="prompt_agent" rows="8" required></textarea>
+          </div>
+
+          <div class="mb-3">
+            <label for="edit-node-condition" class="form-label">Condición de Cumplimiento</label>
+            <input type="text" class="form-control" id="edit-node-condition" name="completion_condition"
+                   placeholder="Ej: documento_subido == true">
+          </div>
+
+          <hr>
+          <h6>Next Steps (Branches)</h6>
+          <div id="edit-next-steps-container" class="mt-2" aria-live="polite"></div>
+          <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="add-next-step-btn">
+            <i class="fas fa-plus"></i> Agregar Branch
+          </button>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger me-auto" id="delete-node-btn">Eliminar Nodo</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" form="editNodeForm" class="btn btn-primary">Guardar Cambios</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Contenedor para Toasts -->
+<div id="toast-container" class="position-fixed top-0 end-0 p-3" style="z-index: 9999"></div>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/jsplumb/jsplumbtoolkit-defaults.min.css') }}">
+
+<style>
+  .jsplumb-container {
+    height: 900px;
+    border: 1px solid #ccc;
+    position: relative;
+    background-image: radial-gradient(#ddd 1px, transparent 1px);
+    background-size: 25px 25px;
+    overflow: auto;
+  }
+  .node-box {
+    padding: 12px;
+    background-color: #fff;
+    border: 1px solid #999;
+    border-radius: 6px;
+    position: absolute;
+    width: 200px;
+    text-align: left;
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.1);
+    cursor: move;
+    z-index: 10;
+  }
+  .node-box .title { font-weight: 600; margin-bottom: .25rem; }
+  .node-box .meta { font-size: .78rem; color: #666; }
+  .connection-delete-button {
+    position: absolute;
+    background-color: #dc3545;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 20px; height: 20px;
+    font-size: 14px; line-height: 20px;
+    text-align: center; cursor: pointer;
+    z-index: 9999; font-weight: 700;
+    box-shadow: 0 2px 5px rgba(0,0,0,.3);
+    transition: transform .2s ease;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .connection-delete-button:hover { transform: scale(1.2); background-color: #c82333; }
+  .jtk-endpoint { z-index: 5; }
+  .jtk-connector { z-index: 4; }
+  .node-box.ui-draggable-dragging { box-shadow: 0 4px 12px rgba(0,0,0,.2); z-index:100; }
+  .jtk-hover { stroke: #2196f3; stroke-width: 3px; }
+</style>
+
+<script src="{{ url_for('static', filename='vendor/jsplumb/jsplumb.min.js') }}"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+  // Oculta el botón "Agregar Branch" (las ramas nacen de las conexiones del canvas)
+  const addBtn = document.getElementById('add-next-step-btn');
+  if (addBtn) addBtn.style.display = 'none';
+
+  // Limpia el contenedor de branches cada vez que se abre el modal
+  // document.getElementById('editNodeModal')?.addEventListener('show.bs.modal', () => {
+  //   const container = document.getElementById('edit-next-steps-container');
+  //   if (container) container.innerHTML = '';
+  // });
+
+  // ===========
+  // Abrir modal de edición y cargar branches reales del nodo
+  // ===========
+  window.openEditNode = async function (nodeId) {
+    const container = document.getElementById('edit-next-steps-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    try {
+      const res = await fetch(`/leadjourney/api/nodos/${nodeId}`);
+      if (!res.ok) throw new Error('No se pudo cargar el nodo');
+      const data = await res.json();
+
+      // Poblar campos del nodo
+      document.getElementById('edit-node-id').value = data.id;
+      document.getElementById('edit-node-name').value = data.nombre || '';
+      document.getElementById('edit-node-prompt').value = data.prompt_agent || '';
+      document.getElementById('edit-node-condition').value = data.completion_condition || '';
+
+      // Renderizar cada branch (solo condición lógica editable)
+      (data.next_steps || []).forEach(step => {
+        const div = document.createElement('div');
+        div.className = 'border p-2 mb-2 rounded';
+        div.dataset.branchId = step.id;
+
+        div.innerHTML = `
+          <div class="mb-1">
+            <label class="form-label mb-0">Etiqueta</label>
+            <input class="form-control" value="${(step.etiqueta || step.destino_nombre || '').toString().replace(/"/g,'&quot;')}" disabled>
+          </div>
+          <div class="mb-1">
+            <label class="form-label mb-0">Nodo destino</label>
+            <input class="form-control" value="${(step.destino_nombre || ('ID ' + step.destino_id)).toString().replace(/"/g,'&quot;')}" disabled>
+          </div>
+          <div class="mb-1">
+            <label class="form-label mb-0">Condición lógica</label>
+            <input type="text" class="form-control branch-cond" placeholder="Ej: respuesta == 'sí'" value="${(step.condicion_logica || '').toString().replace(/"/g,'&quot;')}">
+          </div>
+        `;
+        container.appendChild(div);
+      });
+
+      // Abrir modal
+      new bootstrap.Modal(document.getElementById('editNodeModal')).show();
+    } catch (err) {
+      showToast(err.message || 'Error cargando nodo', 'danger');
+    }
+  };
+
+  // ===========
+  // Guardar: primero el nodo (sin next_steps) y luego cada branch (condición lógica)
+  // ===========
+  document.getElementById('editNodeForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const nodeId = document.getElementById('edit-node-id').value;
+    const payload = {
+      nombre: document.getElementById('edit-node-name').value,
+      prompt_agent: document.getElementById('edit-node-prompt').value,
+      completion_condition: document.getElementById('edit-node-condition').value
+    };
+
+    try {
+      // 1) Actualizar nodo (NO enviar next_steps para no borrar ramas)
+      const nodeRes = await fetch(`/leadjourney/api/nodos/${nodeId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!nodeRes.ok) throw new Error('No se pudo guardar el nodo');
+
+      // 2) Actualizar condición lógica de cada branch
+      const cards = [...document.querySelectorAll('#edit-next-steps-container > .border')];
+      for (const card of cards) {
+        const branchId = card.dataset.branchId;
+        const condicion_logica = card.querySelector('.branch-cond')?.value ?? '';
+
+        const brRes = await fetch(`/leadjourney/api/branches/${branchId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+          },
+          body: JSON.stringify({ condicion_logica })
+        });
+        if (!brRes.ok) throw new Error('No se pudo guardar una rama');
+      }
+
+      showToast('Cambios guardados', 'success');
+    } catch (err) {
+      showToast(err.message || 'Error al guardar', 'danger');
+    }
+  });
+
+  // ===========
+  // Utilidad: Toasts
+  // ===========
+  function showToast(msg, type='success') {
+    const box = document.getElementById('toast-container');
+    if (!box) return;
+    const el = document.createElement('div');
+    el.className = `toast align-items-center text-bg-${type} border-0 show`;
+    el.role = 'alert';
+    el.ariaLive = 'assertive';
+    el.ariaAtomic = 'true';
+    el.innerHTML = `
+      <div class="d-flex">
+        <div class="toast-body">${msg}</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>`;
+    box.appendChild(el);
+    setTimeout(() => el.remove(), 3000);
+  }
+});
+</script>
+
+
+<script type="module" src="{{ url_for('static', filename='leadjourney/js/jsplumb_app.js') }}"></script>
+
+{% endblock content %}

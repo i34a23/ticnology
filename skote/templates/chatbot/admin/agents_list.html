@@ -1,0 +1,196 @@
+{% extends 'partials/base.html' %}
+{% block title %}Agentes de {{ cliente.nombre }}{% endblock title %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+      <h4 class="mb-0 font-size-18">Agentes de {{ cliente.nombre }}</h4>
+      <div class="page-title-right">
+        <button class="btn btn-outline-secondary btn-sm me-2" onclick="history.back()" title="Volver">
+          <i class="bx bx-arrow-back"></i> Volver
+        </button>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAgente" id="btnNuevoAgente">
+          <i class="bx bx-plus me-1"></i> Nuevo Agente
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  {% for agente in agentes %}
+  <div class="col-xl-4 col-sm-6">
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex">
+          <div class="flex-shrink-0 me-3">
+            <div class="avatar-md">
+              <span class="avatar-title rounded-circle bg-light text-primary font-size-20">
+                <i class="bx bx-bot"></i>
+              </span>
+            </div>
+          </div>
+          <div class="flex-grow-1 overflow-hidden">
+            <h5 class="text-truncate font-size-15 mb-1">{{ agente.nombre }}</h5>
+            <p class="text-muted mb-2">{{ agente.rol_proposito or "Sin propósito definido" }}</p>
+            <span class="badge
+              {% if agente.estado == 'activo' %}bg-success
+              {% elif agente.estado == 'en_pausa' %}bg-warning
+              {% else %}bg-secondary{% endif %}">
+              {{ agente.estado|capitalize }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="px-4 py-3 border-top d-flex justify-content-between align-items-center">
+        <div>
+          <!-- EDITAR -->
+          <button class="btn btn-sm btn-info me-1 btn-edit"
+                  data-id="{{ agente.id }}"
+                  title="Editar">
+            <i class="bx bx-pencil"></i>
+          </button>
+          <!-- ELIMINAR -->
+          <form action="{{ url_for('chatbot.admin_agent_delete', agent_id=agente.id) }}" method="POST" class="d-inline">
+            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Eliminar agente?');" title="Eliminar">
+              <i class="bx bx-trash"></i>
+            </button>
+          </form>
+        </div>
+        <div>
+          <!-- ENTRAR A VISTA AVANZADA -->
+          <a href="{{ url_for('chatbot.admin_agent_detail', agent_id=agente.id) }}"
+             class="btn btn-sm btn-outline-primary" title="Entrar al agente">
+            <i class="bx bx-right-arrow-alt"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12">
+    <div class="alert alert-warning mb-0">No hay agentes creados todavía.</div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- MODAL: Crear/Editar Agente -->
+<div class="modal fade" id="modalAgente" tabindex="-1" aria-labelledby="modalAgenteLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form class="modal-content" method="POST" id="formAgente"
+          action="{{ url_for('chatbot.admin_client_agents_create', cliente_id=cliente.id) }}">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalAgenteLabel">Nuevo Agente</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" name="id" id="agenteId">
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Nombre</label>
+            <input type="text" class="form-control" name="nombre" id="agenteNombre" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Propósito / Rol</label>
+            <input type="text" class="form-control" name="rol_proposito" id="agenteRol">
+          </div>
+        </div>
+
+        <div class="row g-3 mt-2">
+          <div class="col-md-6">
+            <label class="form-label">Estado</label>
+            <select class="form-select" name="estado" id="agenteEstado">
+              <option value="activo">Activo</option>
+              <option value="en_pausa">En pausa</option>
+              <option value="archivado">Archivado</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Proveedor</label>
+            <select class="form-select" name="credential_id" id="agenteProveedor">
+              <option value="">(Sin proveedor)</option>
+              {% for prov in proveedores %}
+              <option value="{{ prov.id }}">{{ prov.provider|capitalize }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="row g-3 mt-2">
+          <div class="col-md-12">
+            <label class="form-label">Journeys disponibles</label>
+            <select class="form-select" multiple name="journey_ids[]" id="agenteJourneys">
+              {% for j in journeys %}
+              <option value="{{ j.id }}">{{ j.nombre }}</option>
+              {% endfor %}
+            </select>
+            <div class="form-text">Mantén presionado Ctrl/Cmd para seleccionar varios</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btnGuardarAgente">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const form        = document.getElementById("formAgente");
+  const modalTitle  = document.getElementById("modalAgenteLabel");
+  const inpId       = document.getElementById("agenteId");
+  const inpNombre   = document.getElementById("agenteNombre");
+  const inpRol      = document.getElementById("agenteRol");
+  const selEstado   = document.getElementById("agenteEstado");
+  const selProv     = document.getElementById("agenteProveedor");
+  const selJourneys = document.getElementById("agenteJourneys");
+  const modalEl     = document.getElementById("modalAgente");
+  const modal       = new bootstrap.Modal(modalEl);
+
+  /* NUEVO AGENTE */
+  document.getElementById("btnNuevoAgente").addEventListener("click", () => {
+    modalTitle.textContent = "Nuevo Agente";
+    form.action = "{{ url_for('chatbot.admin_client_agents_create', cliente_id=cliente.id) }}";
+    inpId.value   = "";
+    inpNombre.value = "";
+    inpRol.value  = "";
+    selEstado.value = "activo";
+    selProv.value   = "";
+    Array.from(selJourneys.options).forEach(o => o.selected = false);
+    modal.show();
+  });
+
+  /* EDITAR AGENTE */
+  document.querySelectorAll(".btn-edit").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.id;
+      const res = await fetch(`/chatbot/admin/agents/${id}/edit`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.ok) return;
+
+      const ag = data.agent;
+      modalTitle.textContent = "Editar Agente";
+      form.action = `/chatbot/admin/agents/${ag.id}/update`;
+      inpId.value   = ag.id;
+      inpNombre.value = ag.nombre || "";
+      inpRol.value  = ag.rol_proposito || "";
+      selEstado.value = ag.estado || "activo";
+      selProv.value   = ag.credential_id || "";
+
+      const journeyIds = (ag.journey_ids || []).map(Number);
+      Array.from(selJourneys.options).forEach(opt => {
+        opt.selected = journeyIds.includes(Number(opt.value));
+      });
+
+      modal.show();
+    });
+  });
+});
+</script>
+{% endblock content %}

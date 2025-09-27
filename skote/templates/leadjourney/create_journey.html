@@ -1,0 +1,71 @@
+{% extends 'partials/base.html' %}
+{% block title %} 
+    {% if journey %} 
+        Editar Journey 
+    {% else %} 
+        Crear Journey 
+    {% endif %} 
+{% endblock title %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+            <h4 class="mb-sm-0 font-size-18">
+                {% if journey %}
+                    Editar Journey: {{ journey.nombre }}
+                {% else %}
+                    Crear Nuevo Lead Journey
+                {% endif %}
+            </h4>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <p class="card-title-desc">
+                    Completa los campos para definir un nuevo flujo de conversación. 
+                    El sistema creará automáticamente un <strong>nodo inicial</strong>.
+                </p>
+
+                <form method="POST" action="{{ url_for('leadjourney.create_or_edit_journey', journey_id=journey.id if journey else None) }}">
+                    {{ form.csrf_token }}
+                    
+                    <!-- Nombre -->
+                    <div class="mb-3">
+                        {{ form.nombre.label(class="form-label") }}
+                        {{ form.nombre(class="form-control", placeholder="Ej: Journey de Admisión 2025") }}
+                        {% if form.nombre.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.nombre.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Descripción -->
+                    <div class="mb-3">
+                        {{ form.descripcion.label(class="form-label") }}
+                        {{ form.descripcion(class="form-control", rows="3", placeholder="Breve descripción del flujo") }}
+                        {% if form.descripcion.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.descripcion.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary mt-3">
+                        {% if journey %}
+                            Guardar Cambios
+                        {% else %}
+                            Crear Journey
+                        {% endif %}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

@@ -1,0 +1,256 @@
+{% extends 'partials/base.html' %}
+
+{% block title %}Lead Journeys{% endblock %}
+
+{% block page_title %}
+<div class="row">
+    <div class="col-12">
+        <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+            <h4 class="mb-sm-0 font-size-18">Lead Journeys</h4>
+
+            <div class="page-title-right">
+                <ol class="breadcrumb m-0">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Lead Journeys</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="card-title">Journeys Disponibles</h4>
+                    <a href="{{ url_for('leadjourney.create') }}" class="btn btn-primary">
+                        <i class="bx bx-plus me-1"></i>
+                        Crear Nuevo Journey
+                    </a>
+                </div>
+
+                {% if journeys %}
+                <div class="table-responsive">
+                    <table class="table table-bordered dt-responsive nowrap w-100" id="datatable-buttons">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Slug</th>
+                                <th>Versión</th>
+                                <th>Estado</th>
+                                <th>Descripción</th>
+                                <th>Fecha Creación</th>
+                                <th>Última Actualización</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for journey in journeys %}
+                            <tr>
+                                <td>
+                                    <strong>{{ journey.nombre }}</strong>
+                                </td>
+                                <td>
+                                    <code>{{ journey.slug }}</code>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">v{{ journey.version }}</span>
+                                </td>
+                                <td>
+                                    {% if journey.status == 'draft' %}
+                                        <span class="badge bg-warning">Borrador</span>
+                                    {% elif journey.status == 'published' %}
+                                        <span class="badge bg-success">Publicado</span>
+                                    {% elif journey.status == 'archived' %}
+                                        <span class="badge bg-secondary">Archivado</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if journey.descripcion %}
+                                        <span title="{{ journey.descripcion }}">
+                                            {{ journey.descripcion[:50] }}{% if journey.descripcion|length > 50 %}...{% endif %}
+                                        </span>
+                                    {% else %}
+                                        <em class="text-muted">Sin descripción</em>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        {{ journey.created_at.strftime('%d/%m/%Y %H:%M') }}
+                                    </small>
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        {{ journey.updated_at.strftime('%d/%m/%Y %H:%M') }}
+                                    </small>
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('leadjourney.view', journey_id=journey.id) }}" 
+                                           class="btn btn-outline-primary btn-sm" 
+                                           title="Ver Journey">
+                                            <i class="bx bx-show-alt"></i>
+                                        </a>
+                                        
+                                        {% if journey.status == 'draft' %}
+                                        <button type="button" 
+                                                class="btn btn-outline-success btn-sm" 
+                                                title="Publicar"
+                                                data-action="publish"
+                                                data-journey-id="{{ journey.id }}"
+                                                data-journey-name="{{ journey.nombre }}"
+                                                onclick="publishJourney('{{ journey.id }}', '{{ journey.nombre }}')">
+                                            <i class="bx bx-check-circle"></i>
+                                        </button>
+                                        {% endif %}
+                                        
+                                        {% if journey.status == 'published' %}
+                                        <button type="button" 
+                                                class="btn btn-outline-warning btn-sm" 
+                                                title="Archivar"
+                                                data-action="archive"
+                                                data-journey-id="{{ journey.id }}"
+                                                data-journey-name="{{ journey.nombre }}"
+                                                onclick="archiveJourney('{{ journey.id }}', '{{ journey.nombre }}')">
+                                            <i class="bx bx-archive"></i>
+                                        </button>
+                                        {% endif %}
+                                        
+                                        <button type="button" 
+                                                class="btn btn-outline-danger btn-sm" 
+                                                title="Eliminar"
+                                                data-action="delete"
+                                                data-journey-id="{{ journey.id }}"
+                                                data-journey-name="{{ journey.nombre }}"
+                                                onclick="confirmDelete('{{ journey.id }}', '{{ journey.nombre }}')">
+                                            <i class="bx bx-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <div class="avatar-md mx-auto mb-4">
+                        <div class="avatar-title bg-primary-subtle text-primary rounded-circle font-size-24">
+                            <i class="bx bx-map"></i>
+                        </div>
+                    </div>
+                    <h5 class="text-muted">No hay journeys creados</h5>
+                    <p class="text-muted mb-4">Comienza creando tu primer journey para gestionar tus leads.</p>
+                    <a href="{{ url_for('leadjourney.create') }}" class="btn btn-primary">
+                        <i class="bx bx-plus me-1"></i>
+                        Crear Primer Journey
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación de eliminación -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que deseas eliminar el journey <strong id="journeyNameToDelete"></strong>?</p>
+                <p class="text-danger"><small>Esta acción no se puede deshacer.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación de publicación -->
+<div class="modal fade" id="publishModal" tabindex="-1" aria-labelledby="publishModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="publishModalLabel">Confirmar Publicación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Deseas publicar el journey <strong id="journeyNameToPublish"></strong>?</p>
+                <p class="text-info"><small>Una vez publicado, el journey estará disponible para su uso.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="publishForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-success">Publicar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación de archivo -->
+<div class="modal fade" id="archiveModal" tabindex="-1" aria-labelledby="archiveModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="archiveModalLabel">Confirmar Archivo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Deseas archivar el journey <strong id="journeyNameToArchive"></strong>?</p>
+                <p class="text-warning"><small>El journey archivado no estará disponible para nuevas instancias.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="archiveForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-warning">Archivar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<script>
+    // Definir funciones globalmente tan pronto como sea posible
+    function confirmDelete(journeyId, journeyName) {
+        document.getElementById('journeyNameToDelete').textContent = journeyName;
+        document.getElementById('deleteForm').action = "{{ url_for('leadjourney.delete', journey_id='JOURNEY_ID') }}".replace('JOURNEY_ID', journeyId);
+        
+        var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        deleteModal.show();
+    }
+    
+    function publishJourney(journeyId, journeyName) {
+        document.getElementById('journeyNameToPublish').textContent = journeyName;
+        document.getElementById('publishForm').action = "{{ url_for('leadjourney.publish', journey_id='JOURNEY_ID') }}".replace('JOURNEY_ID', journeyId);
+        
+        var publishModal = new bootstrap.Modal(document.getElementById('publishModal'));
+        publishModal.show();
+    }
+    
+    function archiveJourney(journeyId, journeyName) {
+        document.getElementById('journeyNameToArchive').textContent = journeyName;
+        document.getElementById('archiveForm').action = "{{ url_for('leadjourney.archive', journey_id='JOURNEY_ID') }}".replace('JOURNEY_ID', journeyId);
+        
+        var archiveModal = new bootstrap.Modal(document.getElementById('archiveModal'));
+        archiveModal.show();
+    }
+</script>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- Scripts adicionales si es necesario -->
+{% endblock %}

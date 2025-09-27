@@ -1,0 +1,522 @@
+{% extends 'partials/base.html' %}
+
+{% block title %}{{ stage.nombre }} - Stage{% endblock %}
+
+{% block page_title %}
+<div class="row">
+    <div class="col-12">
+        <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+            <h4 class="mb-sm-0 font-size-18">{{ stage.nombre }}</h4>
+
+            <div class="page-title-right">
+                <ol class="breadcrumb m-0">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('leadjourney.index') }}">Lead Journeys</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('leadjourney.view', journey_id=journey.id) }}">{{ journey.slug }}</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('leadjourney.stages.index', journey_id=journey.id) }}">Stages</a></li>
+                    <li class="breadcrumb-item active">{{ stage.nombre }}</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Stage Information -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">{{ stage.nombre }}</h4>
+                    <div class="d-flex gap-2">
+                        <span class="badge bg-primary">Orden: {{ stage.orden or 'N/A' }}</span>
+                        {% if journey.entry_stage_id == stage.id %}
+                            <span class="badge bg-info">ENTRY STAGE</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if stage.descripcion %}
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Descripción:</label>
+                    <p>{{ stage.descripcion }}</p>
+                </div>
+                {% endif %}
+
+                <div class="row">
+                    <div class="col-sm-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">SLA:</label>
+                            <p>
+                                {% if stage.sla_seconds %}
+                                    {{ (stage.sla_seconds / 3600)|round(1) }} horas
+                                {% else %}
+                                    <span class="text-muted">No definido</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Override Manual:</label>
+                            <p>
+                                {% if stage.allow_manual_override %}
+                                    <span class="badge bg-success">Permitido</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">No permitido</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {% if stage.completion_criteria_json %}
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Criterios de Finalización:</label>
+                    <pre class="bg-light p-2 rounded"><code>{{ stage.completion_criteria_json | tojson(indent=2) }}</code></pre>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Agent Prompt -->
+        {% if stage.agent_prompt %}
+        <div class="card border-info">
+            <div class="card-header bg-info-subtle">
+                <h5 class="card-title mb-0">
+                    <i class="bx bx-brain me-1"></i>
+                    Prompt del Agente IA
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-sm-6">
+                        <label class="form-label fw-bold">Nombre:</label>
+                        <p>{{ stage.agent_prompt.nombre }}</p>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label fw-bold">Modelo LLM:</label>
+                        <p>
+                            {% if stage.agent_prompt.modelo_llm %}
+                                <code>{{ stage.agent_prompt.modelo_llm }}</code>
+                            {% else %}
+                                <span class="text-muted">Por defecto</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Texto del Prompt:</label>
+                    <div class="bg-light p-3 rounded">
+                        <pre style="white-space: pre-wrap; margin: 0;">{{ stage.agent_prompt.template_text }}</pre>
+                    </div>
+                </div>
+
+                {% if stage.agent_prompt.variables_json %}
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Variables Esperadas:</label>
+                    <pre class="bg-light p-2 rounded"><code>{{ stage.agent_prompt.variables_json | tojson(indent=2) }}</code></pre>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Steps List -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Steps del Stage</h5>
+                    <a href="{{ url_for('leadjourney.steps.create', journey_id=journey.id, stage_id=stage.id) }}" class="btn btn-primary btn-sm">
+                        <i class="bx bx-plus me-1"></i>
+                        Agregar Step
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if steps %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th width="80">Orden</th>
+                                    <th>Nombre</th>
+                                    <th>Tipo</th>
+                                    <th>Descripción</th>
+                                    <th width="100">Entry</th>
+                                    <th width="120">Salidas</th>
+                                    <th width="150">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for step in steps %}
+                                <tr data-step-id="{{ step.id }}" class="{% if step.is_entry %}table-info{% endif %}">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <span class="badge bg-secondary me-2">{{ step.orden }}</span>
+                                            <div class="btn-group-vertical" style="width: 20px;">
+                                                {% if not loop.first %}
+                                                <button class="btn btn-link btn-sm p-0" onclick="moveStep('{{ step.id }}', 'up')" title="Mover arriba">
+                                                    <i class="bx bx-chevron-up text-muted"></i>
+                                                </button>
+                                                {% endif %}
+                                                {% if not loop.last %}
+                                                <button class="btn btn-link btn-sm p-0" onclick="moveStep('{{ step.id }}', 'down')" title="Mover abajo">
+                                                    <i class="bx bx-chevron-down text-muted"></i>
+                                                </button>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <strong>{{ step.nombre }}</strong>
+                                    </td>
+                                    <td>
+                                        {% if step.tipo == 'manual' %}
+                                            <span class="badge bg-info">Manual</span>
+                                        {% elif step.tipo == 'agent_call' %}
+                                            <span class="badge bg-primary">Agente IA</span>
+                                        {% elif step.tipo == 'condition' %}
+                                            <span class="badge bg-warning">Condicional</span>
+                                        {% elif step.tipo == 'data_collection' %}
+                                            <span class="badge bg-success">Datos</span>
+                                        {% elif step.tipo == 'notification' %}
+                                            <span class="badge bg-secondary">Notificación</span>
+                                        {% else %}
+                                            <span class="badge bg-light text-dark">{{ step.tipo }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if step.descripcion %}
+                                            <span title="{{ step.descripcion }}">
+                                                {{ step.descripcion[:40] }}{% if step.descripcion|length > 40 %}...{% endif %}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">Sin descripción</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if step.is_entry %}
+                                            <i class="bx bx-log-in text-info" title="Step de entrada del stage"></i>
+                                        {% else %}
+                                            <button class="btn btn-link btn-sm p-0" 
+                                                    onclick="setEntryStep('{{ step.id }}')" 
+                                                    title="Establecer como entrada">
+                                                <i class="bx bx-log-in-circle text-muted"></i>
+                                            </button>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% set salidas_count = step.salidas|length %}
+                                        {% if salidas_count > 0 %}
+                                            <span class="badge bg-primary">{{ salidas_count }}</span>
+                                            {% if step.tipo == 'condition' %}
+                                                <small class="d-block text-muted">condiciones</small>
+                                            {% else %}
+                                                <small class="d-block text-muted">salidas</small>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('leadjourney.steps.view', journey_id=journey.id, stage_id=stage.id, step_id=step.id) }}" 
+                                               class="btn btn-outline-info" title="Ver detalle">
+                                                <i class="bx bx-show-alt"></i>
+                                            </a>
+                                            <a href="{{ url_for('leadjourney.steps.edit', journey_id=journey.id, stage_id=stage.id, step_id=step.id) }}" 
+                                               class="btn btn-outline-warning" title="Editar">
+                                                <i class="bx bx-edit"></i>
+                                            </a>
+                                            <button class="btn btn-outline-danger" 
+                                                    onclick="confirmDeleteStep('{{ step.id }}', '{{ step.nombre }}')" 
+                                                    title="Eliminar">
+                                                <i class="bx bx-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Diagrama de flujo simple -->
+                    <div class="mt-4">
+                        <h6>Flujo de Steps:</h6>
+                        <div class="border rounded p-3 bg-light">
+                            {% for step in steps %}
+                                <div class="d-inline-block">
+                                    <div class="badge {% if step.is_entry %}bg-info{% else %}bg-secondary{% endif %} me-2 mb-2">
+                                        {{ loop.index }}. {{ step.nombre }}
+                                        {% if step.tipo == 'condition' %}
+                                            <i class="bx bx-git-branch ms-1"></i>
+                                        {% endif %}
+                                    </div>
+                                    {% if not loop.last %}
+                                        <i class="bx bx-right-arrow-alt text-muted me-2"></i>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                {% else %}
+                    <div class="text-center py-4">
+                        <div class="avatar-md mx-auto mb-3">
+                            <div class="avatar-title bg-primary-subtle text-primary rounded-circle font-size-24">
+                                <i class="bx bx-list-ol"></i>
+                            </div>
+                        </div>
+                        <h6 class="text-muted">No hay steps definidos</h6>
+                        <p class="text-muted mb-3">Los steps son las tareas específicas que se ejecutan en este stage.</p>
+                        <a href="{{ url_for('leadjourney.steps.create', journey_id=journey.id, stage_id=stage.id) }}" class="btn btn-primary btn-sm">
+                            <i class="bx bx-plus me-1"></i>
+                            Crear Primer Step
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bx bx-cog me-1"></i>
+                    Acciones
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('leadjourney.stages.edit', journey_id=journey.id, stage_id=stage.id) }}" class="btn btn-outline-primary">
+                        <i class="bx bx-edit me-1"></i>
+                        Editar Stage
+                    </a>
+                    
+                    {% if not journey.entry_stage_id == stage.id %}
+                    <button type="button" 
+                            class="btn btn-outline-info"
+                            onclick="setEntryStage('{{ stage.id }}')">
+                        <i class="bx bx-log-in me-1"></i>
+                        Establecer como Entrada
+                    </button>
+                    {% endif %}
+                    
+                    <button type="button" 
+                            class="btn btn-outline-danger" 
+                            onclick="confirmDeleteStage('{{ stage.id }}', '{{ stage.nombre }}')">
+                        <i class="bx bx-trash me-1"></i>
+                        Eliminar Stage
+                    </button>
+                    
+                    <hr>
+                    
+                    <a href="{{ url_for('leadjourney.stages.index', journey_id=journey.id) }}" class="btn btn-secondary">
+                        <i class="bx bx-arrow-back me-1"></i>
+                        Volver a Stages
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stage Statistics -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bx bx-bar-chart me-1"></i>
+                    Estadísticas
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="border-end">
+                            <h4 class="mb-1">{{ steps|length }}</h4>
+                            <p class="text-muted mb-0">Steps</p>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="mb-1">
+                            {% set total_edges = 0 %}
+                            {% for step in steps %}
+                                {% set total_edges = total_edges + step.salidas|length %}
+                            {% endfor %}
+                            {{ total_edges }}
+                        </h4>
+                        <p class="text-muted mb-0">Conexiones</p>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="mt-3">
+                    <small class="text-muted">Tipos de Steps:</small>
+                    <div class="mt-2">
+                        {% set step_types = {} %}
+                        {% for step in steps %}
+                            {% if step.tipo in step_types %}
+                                {% set _ = step_types.update({step.tipo: step_types[step.tipo] + 1}) %}
+                            {% else %}
+                                {% set _ = step_types.update({step.tipo: 1}) %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% for tipo, count in step_types.items() %}
+                        <div class="d-flex justify-content-between">
+                            <small>{{ tipo|title }}</small>
+                            <small class="text-muted">{{ count }}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Journey Context -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bx bx-map me-1"></i>
+                    Contexto del Journey
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <small class="text-muted">Journey:</small>
+                    <p class="mb-1">{{ journey.nombre }}</p>
+                </div>
+                <div class="mb-2">
+                    <small class="text-muted">Total Stages:</small>
+                    <p class="mb-1">{{ total_stages }}</p>
+                </div>
+                <div class="mb-2">
+                    <small class="text-muted">Posición:</small>
+                    <p class="mb-1">{{ stage.orden or 'N/A' }} de {{ total_stages }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modales de confirmación -->
+<div class="modal fade" id="deleteStageModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Eliminación de Stage</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que deseas eliminar el stage <strong id="stageNameToDelete"></strong>?</p>
+                <p class="text-danger"><small>Esta acción eliminará todos los steps y no se puede deshacer.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="deleteStageForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteStepModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Eliminación de Step</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que deseas eliminar el step <strong id="stepNameToDelete"></strong>?</p>
+                <p class="text-danger"><small>Esta acción eliminará todas las conexiones asociadas.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="deleteStepForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function confirmDeleteStage(stageId, stageName) {
+        document.getElementById('stageNameToDelete').textContent = stageName;
+        document.getElementById('deleteStageForm').action = "{{ url_for('leadjourney.stages.delete', journey_id=journey.id, stage_id='STAGE_ID') }}".replace('STAGE_ID', stageId);
+        new bootstrap.Modal(document.getElementById('deleteStageModal')).show();
+    }
+    
+    function confirmDeleteStep(stepId, stepName) {
+        document.getElementById('stepNameToDelete').textContent = stepName;
+        document.getElementById('deleteStepForm').action = "{{ url_for('leadjourney.steps.delete', journey_id=journey.id, stage_id=stage.id, step_id='STEP_ID') }}".replace('STEP_ID', stepId);
+        new bootstrap.Modal(document.getElementById('deleteStepModal')).show();
+    }
+    
+    function setEntryStage(stageId) {
+        fetch("{{ url_for('leadjourney.stages.set_entry', journey_id=journey.id) }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ stage_id: stageId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        });
+    }
+    
+    function setEntryStep(stepId) {
+        fetch("{{ url_for('leadjourney.steps.set_entry', journey_id=journey.id, stage_id=stage.id) }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ step_id: stepId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        });
+    }
+    
+    function moveStep(stepId, direction) {
+        fetch("{{ url_for('leadjourney.steps.move', journey_id=journey.id, stage_id=stage.id) }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                step_id: stepId,
+                direction: direction
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        });
+    }
+</script>
+{% endblock %}

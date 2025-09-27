@@ -1,0 +1,115 @@
+{% extends 'partials/base.html' %}
+{% block title %} E Charts {% endblock title %}
+
+{% block content %}
+<!-- start page title -->
+<div class="row">
+    <div class="col-12">
+        <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+            <h4 class="mb-sm-0 font-size-18">E Charts</h4>
+
+            <div class="page-title-right">
+                <ol class="breadcrumb m-0">
+                    <li class="breadcrumb-item"><a href="javascript: void(0);">Charts</a></li>
+                    <li class="breadcrumb-item active">E Charts</li>
+                </ol>
+            </div>
+
+        </div>
+    </div>
+</div>
+<!-- end page title -->
+
+<div class="row">
+    <div class="col-xl-6">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title mb-4">Line Chart</h4>
+                <div id="line-chart" data-colors='["--bs-success"]' class="e-charts"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title mb-4">Mix Line-Bar</h4>
+                <div id="mix-line-bar"  data-colors='["--bs-success","--bs-primary", "--bs-danger"]' class="e-charts"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- end row -->
+
+<div class="row">
+    <div class="col-xl-6">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title mb-4">Doughnut Chart</h4>
+                <div id="doughnut-chart" data-colors='["--bs-primary","--bs-warning", "--bs-danger","--bs-info", "--bs-success"]' class="e-charts"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title mb-4">Pie Chart</h4>
+                <div id="pie-chart" data-colors='["--bs-primary","--bs-warning", "--bs-danger","--bs-info", "--bs-success"]' class="e-charts"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- end row -->
+
+<div class="row">
+    <div class="col-xl-6">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title mb-4">Scatter Chart</h4>
+                <div id="scatter-chart" data-colors='["--bs-success"]' class="e-charts"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title mb-4">Bubble Chart</h4>
+                <div id="bubble-chart" data-colors='["--bs-primary-rgb", "--bs-success-rgb"]' class="e-charts"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- end row -->
+
+<div class="row">
+    <div class="col-xl-6">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title mb-4">Candlestick Chart</h4>
+                <div id="candlestick-chart" data-colors='["--bs-primary","--bs-success"]' class="e-charts"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title mb-4">Gauge Chart</h4>
+                <div id="gauge-chart" data-colors='["--bs-success","--bs-primary","--bs-danger"]' class="e-charts"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- end row -->
+
+</div> <!-- container-fluid -->
+</div>
+<!-- End Page-content -->
+
+{% endblock content %}
+
+{% block extra_javascript %}
+<!-- echarts js -->
+<script src="{{url_for('static' ,filename='libs/echarts/dist/echarts.min.js')}}"></script>
+<!-- echarts init -->
+<script src="{{url_for('static' ,filename='js/pages/echarts.init.js')}}"></script>
+
+{% endblock extra_javascript %}

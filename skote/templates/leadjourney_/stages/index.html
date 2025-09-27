@@ -1,0 +1,334 @@
+{% extends 'partials/base.html' %}
+
+{% block title %}{{ journey.nombre }} - Stages{% endblock %}
+
+{% block page_title %}
+<div class="row">
+    <div class="col-12">
+        <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+            <h4 class="mb-sm-0 font-size-18">Stages - {{ journey.nombre }}</h4>
+
+            <div class="page-title-right">
+                <ol class="breadcrumb m-0">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('leadjourney.index') }}">Lead Journeys</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('leadjourney.view', journey_id=journey.id) }}">{{ journey.slug }}</a></li>
+                    <li class="breadcrumb-item active">Stages</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Journey Info Card -->
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-1">{{ journey.nombre }}</h5>
+                        <p class="text-muted mb-0">
+                            <code>{{ journey.slug }}</code> - v{{ journey.version }}
+                            {% if journey.status == 'draft' %}
+                                <span class="badge bg-warning ms-2">Borrador</span>
+                            {% elif journey.status == 'published' %}
+                                <span class="badge bg-success ms-2">Publicado</span>
+                            {% elif journey.status == 'archived' %}
+                                <span class="badge bg-secondary ms-2">Archivado</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('leadjourney.view', journey_id=journey.id) }}" class="btn btn-outline-secondary">
+                            <i class="bx bx-arrow-back me-1"></i>
+                            Volver al Journey
+                        </a>
+                        <a href="{{ url_for('leadjourney.stages.create', journey_id=journey.id) }}" class="btn btn-primary">
+                            <i class="bx bx-plus me-1"></i>
+                            Crear Nuevo Stage
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stages List -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">Stages del Journey</h4>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-info btn-sm" id="toggleFlowView">
+                            <i class="bx bx-sitemap me-1"></i>
+                            Vista de Flujo
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if stages %}
+                    <!-- Vista de tabla (por defecto) -->
+                    <div id="tableView">
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th width="80">Orden</th>
+                                        <th>Nombre</th>
+                                        <th>Descripción</th>
+                                        <th width="100">Steps</th>
+                                        <th width="100">SLA</th>
+                                        <th width="120">Entry Stage</th>
+                                        <th width="150">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="stagesTableBody">
+                                    {% for stage in stages %}
+                                    <tr data-stage-id="{{ stage.id }}">
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <span class="badge bg-primary me-2">{{ stage.orden or 'N/A' }}</span>
+                                                <div class="btn-group-vertical" style="width: 20px;">
+                                                    {% if not loop.first %}
+                                                    <button class="btn btn-link btn-sm p-0" onclick="moveStage('{{ stage.id }}', 'up')" title="Mover arriba">
+                                                        <i class="bx bx-chevron-up text-muted"></i>
+                                                    </button>
+                                                    {% endif %}
+                                                    {% if not loop.last %}
+                                                    <button class="btn btn-link btn-sm p-0" onclick="moveStage('{{ stage.id }}', 'down')" title="Mover abajo">
+                                                        <i class="bx bx-chevron-down text-muted"></i>
+                                                    </button>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <strong>{{ stage.nombre }}</strong>
+                                                {% if journey.entry_stage_id == stage.id %}
+                                                    <span class="badge bg-info ms-1" title="Stage de entrada">ENTRY</span>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if stage.descripcion %}
+                                                <span title="{{ stage.descripcion }}">
+                                                    {{ stage.descripcion[:60] }}{% if stage.descripcion|length > 60 %}...{% endif %}
+                                                </span>
+                                            {% else %}
+                                                <span class="text-muted">Sin descripción</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            {% set steps_count = stage.steps|length %}
+                                            {% if steps_count > 0 %}
+                                                <span class="badge bg-success">{{ steps_count }}</span>
+                                            {% else %}
+                                                <span class="badge bg-warning">0</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            {% if stage.sla_seconds %}
+                                                <small class="text-muted">{{ (stage.sla_seconds / 3600)|round(1) }}h</small>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            {% if journey.entry_stage_id == stage.id %}
+                                                <i class="bx bx-check text-success" title="Es el stage de entrada"></i>
+                                            {% else %}
+                                                <button class="btn btn-link btn-sm p-0" 
+                                                        onclick="setEntryStage('{{ stage.id }}')" 
+                                                        title="Establecer como entrada">
+                                                    <i class="bx bx-log-in text-muted"></i>
+                                                </button>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ url_for('leadjourney.stages.view', journey_id=journey.id, stage_id=stage.id) }}" 
+                                                   class="btn btn-outline-info" title="Ver Steps">
+                                                    <i class="bx bx-list-ul"></i>
+                                                </a>
+                                                <a href="{{ url_for('leadjourney.stages.edit', journey_id=journey.id, stage_id=stage.id) }}" 
+                                                   class="btn btn-outline-warning" title="Editar">
+                                                    <i class="bx bx-edit"></i>
+                                                </a>
+                                                <button class="btn btn-outline-danger" 
+                                                        onclick="confirmDeleteStage('{{ stage.id }}', '{{ stage.nombre }}')" 
+                                                        title="Eliminar">
+                                                    <i class="bx bx-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Vista de flujo (oculta por defecto) -->
+                    <div id="flowView" style="display: none;">
+                        <div class="row">
+                            {% for stage in stages %}
+                            <div class="col-md-4 mb-3">
+                                <div class="card border-primary">
+                                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <span class="badge bg-light text-primary me-2">{{ stage.orden or loop.index }}</span>
+                                            <strong>{{ stage.nombre }}</strong>
+                                        </div>
+                                        {% if journey.entry_stage_id == stage.id %}
+                                            <i class="bx bx-log-in" title="Stage de entrada"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="card-body">
+                                        {% if stage.descripcion %}
+                                            <p class="card-text small">{{ stage.descripcion[:80] }}{% if stage.descripcion|length > 80 %}...{% endif %}</p>
+                                        {% endif %}
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">
+                                                <i class="bx bx-list-ul me-1"></i>{{ stage.steps|length }} steps
+                                            </small>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ url_for('leadjourney.stages.view', journey_id=journey.id, stage_id=stage.id) }}" 
+                                                   class="btn btn-outline-primary">Ver</a>
+                                                <a href="{{ url_for('leadjourney.stages.edit', journey_id=journey.id, stage_id=stage.id) }}" 
+                                                   class="btn btn-outline-warning">Editar</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% if not loop.last %}
+                                <div class="text-center my-2">
+                                    <i class="bx bx-down-arrow-alt text-primary"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% if loop.index % 3 == 0 %}
+                                </div><div class="row">
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                {% else %}
+                    <div class="text-center py-5">
+                        <div class="avatar-md mx-auto mb-4">
+                            <div class="avatar-title bg-primary-subtle text-primary rounded-circle font-size-24">
+                                <i class="bx bx-layer"></i>
+                            </div>
+                        </div>
+                        <h5 class="text-muted">No hay stages definidos</h5>
+                        <p class="text-muted mb-4">Los stages son las etapas principales del journey. Cada stage contiene varios steps.</p>
+                        <a href="{{ url_for('leadjourney.stages.create', journey_id=journey.id) }}" class="btn btn-primary">
+                            <i class="bx bx-plus me-1"></i>
+                            Crear Primer Stage
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación de eliminación -->
+<div class="modal fade" id="deleteStageModal" tabindex="-1" aria-labelledby="deleteStageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteStageModalLabel">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que deseas eliminar el stage <strong id="stageNameToDelete"></strong>?</p>
+                <p class="text-danger"><small>Esta acción eliminará todos los steps asociados y no se puede deshacer.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="deleteStageForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Alternar vista de tabla/flujo
+    document.getElementById('toggleFlowView').addEventListener('click', function() {
+        const tableView = document.getElementById('tableView');
+        const flowView = document.getElementById('flowView');
+        const button = this;
+        
+        if (tableView.style.display === 'none') {
+            tableView.style.display = 'block';
+            flowView.style.display = 'none';
+            button.innerHTML = '<i class="bx bx-sitemap me-1"></i>Vista de Flujo';
+        } else {
+            tableView.style.display = 'none';
+            flowView.style.display = 'block';
+            button.innerHTML = '<i class="bx bx-table me-1"></i>Vista de Tabla';
+        }
+    });
+    
+    // Confirmar eliminación de stage
+    function confirmDeleteStage(stageId, stageName) {
+        document.getElementById('stageNameToDelete').textContent = stageName;
+        document.getElementById('deleteStageForm').action = "{{ url_for('leadjourney.stages.delete', journey_id=journey.id, stage_id='STAGE_ID') }}".replace('STAGE_ID', stageId);
+        
+        var deleteModal = new bootstrap.Modal(document.getElementById('deleteStageModal'));
+        deleteModal.show();
+    }
+    
+    // Mover stage arriba/abajo
+    function moveStage(stageId, direction) {
+        fetch("{{ url_for('leadjourney.stages.move', journey_id=journey.id) }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name=csrf-token]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                stage_id: stageId,
+                direction: direction
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error al mover el stage: ' + data.message);
+            }
+        });
+    }
+    
+    // Establecer stage de entrada
+    function setEntryStage(stageId) {
+        fetch("{{ url_for('leadjourney.stages.set_entry', journey_id=journey.id) }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name=csrf-token]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                stage_id: stageId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error al establecer stage de entrada: ' + data.message);
+            }
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticno ChatBot - Interfaz Supabase</title>
+    <style>
+        :root {
+            --supabase-dark: #1a1a1a;
+            --supabase-darker: #111111;
+            --supabase-light: #2a2a2a;
+            --supabase-lighter: #3a3a3a;
+            --supabase-blue: #3ecf8e;
+            --supabase-blue-light: #4ade80;
+            --supabase-text: #ffffff;
+            --supabase-text-secondary: #a0a0a0;
+            --supabase-border: #404040;
+            --supabase-accent: #24b47e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--supabase-dark);
+            color: var(--supabase-text);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .main-container {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+        }
+
+        /* Panel lateral izquierdo - Estilo Supabase */
+        .sidebar {
+            width: 320px;
+            background: var(--supabase-darker);
+            border-right: 1px solid var(--supabase-border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            background: var(--supabase-dark);
+            padding: 20px;
+            border-bottom: 1px solid var(--supabase-border);
+        }
+
+        .sidebar-header h2 {
+            font-size: 18px;
+            margin-bottom: 5px;
+            color: var(--supabase-blue);
+        }
+
+        .sidebar-header div {
+            font-size: 14px;
+            color: var(--supabase-text-secondary);
+        }
+
+        .filters-section {
+            padding: 15px;
+            border-bottom: 1px solid var(--supabase-border);
+        }
+
+        .filter-group {
+            margin-bottom: 15px;
+        }
+
+        .filter-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 5px;
+            color: var(--supabase-text-secondary);
+            font-size: 14px;
+        }
+
+        .filter-input, .filter-select {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--supabase-light);
+            border: 1px solid var(--supabase-border);
+            border-radius: 6px;
+            font-size: 14px;
+            color: var(--supabase-text);
+            transition: border-color 0.2s;
+        }
+
+        .filter-input:focus, .filter-select:focus {
+            outline: none;
+            border-color: var(--supabase-blue);
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary { 
+            background: var(--supabase-blue); 
+            color: var(--supabase-dark);
+            width: 100%;
+            justify-content: center;
+        }
+
+        .btn-primary:hover {
+            background: var(--supabase-blue-light);
+            transform: translateY(-1px);
+        }
+
+        .users-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .user-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: var(--supabase-light);
+            border: 1px solid var(--supabase-border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .user-item:hover {
+            background: var(--supabase-lighter);
+            border-color: var(--supabase-blue);
+        }
+
+        .user-item.selected {
+            background: var(--supabase-blue);
+            color: var(--supabase-dark);
+            border-color: var(--supabase-blue);
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .user-details {
+            font-size: 12px;
+            color: var(--supabase-text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .user-item.selected .user-details {
+            color: rgba(0, 0, 0, 0.7);
+        }
+
+        .user-journey {
+            font-size: 11px;
+            padding: 4px 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .user-item.selected .user-journey {
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        /* Panel principal de chat */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--supabase-dark);
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: var(--supabase-darker);
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--supabase-border);
+        }
+
+        .chat-user-info h1 {
+            font-size: 20px;
+            margin-bottom: 5px;
+            color: var(--supabase-text);
+        }
+
+        .chat-user-details {
+            font-size: 14px;
+            color: var(--supabase-text-secondary);
+        }
+
+        .journey-info {
+            text-align: right;
+        }
+
+        .journey-info div {
+            font-size: 12px;
+            color: var(--supabase-text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .progress-bar {
+            background: var(--supabase-light);
+            height: 6px;
+            border-radius: 3px;
+            margin: 8px 0;
+            overflow: hidden;
+            width: 150px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--supabase-blue);
+            transition: width 0.3s ease;
+            border-radius: 3px;
+        }
+
+        /* Journey overview panel */
+        .journey-panel {
+            background: var(--supabase-darker);
+            border-bottom: 1px solid var(--supabase-border);
+            padding: 15px;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+
+        .journey-step {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+
+        .step-indicator {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .step-completed {
+            background: var(--supabase-blue);
+            color: var(--supabase-dark);
+        }
+
+        .step-current {
+            background: #fbbf24;
+            color: var(--supabase-dark);
+        }
+
+        .step-pending {
+            background: var(--supabase-light);
+            color: var(--supabase-text-secondary);
+            border: 1px solid var(--supabase-border);
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: var(--supabase-dark);
+        }
+
+        .message {
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-user {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .message-bot {
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .message-bubble {
+            max-width: 70%;
+            padding: 12px 18px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+
+        .message-user .message-bubble {
+            background: var(--supabase-blue);
+            color: var(--supabase-dark);
+            border-bottom-right-radius: 4px;
+        }
+
+        .message-bot .message-bubble {
+            background: var(--supabase-light);
+            color: var(--supabase-text);
+            border: 1px solid var(--supabase-border);
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-debug {
+            font-size: 11px;
+            background: rgba(251, 191, 36, 0.1);
+            color: #fbbf24;
+            padding: 6px 10px;
+            border-radius: 6px;
+            margin-top: 8px;
+            border-left: 2px solid #fbbf24;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: var(--supabase-darker);
+            border-top: 1px solid var(--supabase-border);
+        }
+
+        .chat-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn-secondary { 
+            background: var(--supabase-light); 
+            color: var(--supabase-text);
+            border: 1px solid var(--supabase-border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--supabase-lighter);
+        }
+
+        .btn-success { 
+            background: #10b981; 
+            color: white;
+        }
+
+        .btn-warning { 
+            background: #f59e0b; 
+            color: var(--supabase-dark);
+        }
+
+        .chat-input-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 14px 18px;
+            background: var(--supabase-light);
+            border: 1px solid var(--supabase-border);
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+            color: var(--supabase-text);
+            transition: border-color 0.2s;
+        }
+
+        .message-input:focus {
+            border-color: var(--supabase-blue);
+        }
+
+        .send-btn {
+            background: var(--supabase-blue);
+            color: var(--supabase-dark);
+            border: none;
+            border-radius: 8px;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-size: 18px;
+        }
+
+        .send-btn:hover {
+            background: var(--supabase-blue-light);
+            transform: scale(1.05);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 10px;
+            color: var(--supabase-text-secondary);
+        }
+
+        .no-user-selected {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--supabase-text-secondary);
+            font-size: 18px;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* Modal para selección de journey */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+        }
+
+        .modal-content {
+            background-color: var(--supabase-darker);
+            margin: 10% auto;
+            padding: 0;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            border: 1px solid var(--supabase-border);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid var(--supabase-border);
+        }
+
+        .modal-header h3 {
+            color: var(--supabase-text);
+        }
+
+        .close {
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            color: var(--supabase-text-secondary);
+        }
+
+        .close:hover {
+            color: var(--supabase-text);
+        }
+
+        .journey-option {
+            padding: 15px;
+            border-bottom: 1px solid var(--supabase-border);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .journey-option:hover {
+            background-color: var(--supabase-light);
+        }
+
+        .journey-option:last-child {
+            border-bottom: none;
+        }
+
+        /* Scrollbar personalizado */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--supabase-dark);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--supabase-light);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--supabase-lighter);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: 40vh;
+            }
+            
+            .chat-container {
+                height: 60vh;
+            }
+            
+            .chat-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .journey-info {
+                text-align: left;
+                width: 100%;
+            }
+            
+            .progress-bar {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Panel lateral con lista de usuarios -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>🤖 Ticno ChatBot</h2>
+                <div>Usuarios del Sistema</div>
+            </div>
+            
+            <div class="filters-section">
+                <div class="filter-group">
+                    <label>Cliente:</label>
+                    <select class="filter-select" id="clientFilter">
+                        <option value="">Todos los clientes</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Buscar:</label>
+                    <input type="text" class="filter-input" id="searchFilter" placeholder="Nombre, email o teléfono">
+                </div>
+                
+                <div class="filter-group">
+                    <button class="btn btn-primary" onclick="loadUsers()">
+                        <span>🔄</span> Actualizar
+                    </button>
+                </div>
+            </div>
+            
+            <div class="users-list" id="usersList">
+                <div style="text-align: center; padding: 20px; color: var(--supabase-text-secondary);">
+                    Cargando usuarios...
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel principal de chat -->
+        <div class="chat-container">
+            <div class="no-user-selected" id="noUserSelected">
+                <div>
+                    <h3>Selecciona un usuario para comenzar el chat</h3>
+                    <p style="margin-top: 10px; font-size: 14px;">Usa el panel lateral para buscar y seleccionar un usuario</p>
+                </div>
+            </div>
+            
+            <!-- Header del chat (oculto inicialmente) -->
+            <div class="chat-header" id="chatHeader" style="display: none;">
+                <div class="chat-user-info">
+                    <h1 id="chatUserName">Usuario</h1>
+                    <div class="chat-user-details" id="chatUserDetails">
+                        Estado: <span id="userStatus"></span> | Journey: <span id="userJourney"></span>
+                    </div>
+                </div>
+                <div class="journey-info">
+                    <div>Progreso del Journey</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                    </div>
+                    <div id="progressText">0% completado</div>
+                </div>
+            </div>
+
+            <!-- Panel de overview del journey -->
+            <div class="journey-panel" id="journeyPanel" style="display: none;">
+                <div id="journeySteps"></div>
+            </div>
+
+            <!-- Mensajes del chat -->
+            <div class="chat-messages" id="chatMessages" style="display: none;">
+            </div>
+
+            <!-- Indicador de carga -->
+            <div class="loading" id="loadingIndicator">
+                Enviando mensaje...
+            </div>
+
+            <!-- Controles de chat -->
+            <div class="chat-input-container" id="chatInputContainer" style="display: none;">
+                <div class="chat-controls">
+                    <button class="btn btn-secondary" onclick="loadJourneyOverview()">
+                        <span>📊</span> Overview
+                    </button>
+                    <button class="btn btn-warning" onclick="showJourneyModal()">
+                        <span>🎯</span> Cambiar Journey
+                    </button>
+                    <button class="btn btn-success" onclick="loadChatHistory()">
+                        <span>📚</span> Historial
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearCurrentChat()">
+                        <span>🗑️</span> Limpiar
+                    </button>
+                </div>
+
+                <div class="chat-input-row">
+                    <input type="text" 
+                           class="message-input" 
+                           id="messageInput" 
+                           placeholder="Escribe tu mensaje aquí..."
+                           onkeypress="handleEnter(event)"
+                           disabled>
+                    
+                    <button class="send-btn" onclick="sendMessage()" disabled id="sendButton">
+                        ➤
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para selección de journey -->
+    <div id="journeyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Seleccionar Journey</h3>
+                <span class="close" onclick="closeJourneyModal()">&times;</span>
+            </div>
+            <div id="journeyOptions">
+                Cargando journeys...
+            </div>
+        </div>
+    </div>
+
+
+    
+    <script>
+        // Variables globales
+        const FLASK_API_URL = 'http://127.0.0.1:5000/chatbot';
+        const CHATBOT_API_URL = 'http://localhost:8000';
+        let currentUser = null;
+        let currentJourneyOverview = null;
+        let clients = [];
+        let journeys = [];
+
+        // Inicialización
+        window.onload = function() {
+            loadClients();
+            loadJourneys();
+            loadUsers();
+        };
+
+        // Cargar clientes
+        async function loadClients() {
+            try {
+                const response = await fetch(`${FLASK_API_URL}/api/clients`);
+                const data = await response.json();
+                clients = data.clients;
+                
+                const clientFilter = document.getElementById('clientFilter');
+                clientFilter.innerHTML = '<option value="">Todos los clientes</option>';
+                
+                clients.forEach(client => {
+                    clientFilter.innerHTML += `
+                        <option value="${client.id}">${client.nombre} (${client.user_count} usuarios)</option>
+                    `;
+                
+                console.log("Clientes cargados exitosamente!")
+                });
+            } catch (error) {
+                console.error('Error cargando clientes:', error);
+            }
+        }
+
+        // Cargar journeys
+        async function loadJourneys() {
+            try {
+                const response = await fetch(`${FLASK_API_URL}/api/journeys`);
+                const data = await response.json();
+                journeys = data.journeys;
+                console.log("Journeys cargados exitosamente!")
+            } catch (error) {
+                console.error('Error cargando journeys:', error);
+            }
+        }
+
+        // Cargar usuarios
+        async function loadUsers() {
+            const clientId = document.getElementById('clientFilter').value;
+            const search = document.getElementById('searchFilter').value;
+            
+            let url = `${FLASK_API_URL}/api/users?limit=50`;
+            if (clientId) url += `&cliente_id=${clientId}`;
+            if (search) url += `&search=${encodeURIComponent(search)}`;
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                const usersList = document.getElementById('usersList');
+                if (data.users.length === 0) {
+                    usersList.innerHTML = '<div style="text-align: center; padding: 20px; color: #6c757d;">No se encontraron usuarios</div>';
+                    return;
+                }
+                
+                usersList.innerHTML = '';
+                data.users.forEach(user => {
+                    const userDiv = document.createElement('div');
+                    userDiv.className = 'user-item';
+                    userDiv.onclick = () => selectUser(user);
+                    
+                    userDiv.innerHTML = `
+                        <div class="user-name">${user.nombre}</div>
+                        <div class="user-details">
+                            ${user.email} | Tel: ${user.telefono}<br>
+                            Cliente: ${user.cliente_name} | Estado: ${user.estado}
+                        </div>
+                        <div class="user-journey">
+                            Journey: ${user.journey_name}
+                        </div>
+                    `;
+                    
+                    usersList.appendChild(userDiv);
+                    console.log("Usuarios cargados exitosamente!")
+                });
+                
+            } catch (error) {
+                console.error('Error cargando usuarios:', error);
+                document.getElementById('usersList').innerHTML = 
+                    '<div style="text-align: center; padding: 20px; color: #dc3545;">Error cargando usuarios</div>';
+            }
+        }
+
+        // Seleccionar usuario
+        async function selectUser(user) {
+            // Remover selección previa
+            document.querySelectorAll('.user-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // Marcar como seleccionado
+            event.currentTarget.classList.add('selected');
+            
+            currentUser = user;
+            
+            // Mostrar elementos del chat
+            document.getElementById('noUserSelected').style.display = 'none';
+            document.getElementById('chatHeader').style.display = 'flex';
+            document.getElementById('journeyPanel').style.display = 'block';
+            document.getElementById('chatMessages').style.display = 'block';
+            document.getElementById('chatInputContainer').style.display = 'block';
+            
+            // Actualizar información del header
+            document.getElementById('chatUserName').textContent = user.nombre;
+            document.getElementById('chatUserDetails').innerHTML = `
+                Estado: <span id="userStatus">${user.estado}</span> | 
+                Journey: <span id="userJourney">${user.journey_name}</span>
+            `;
+            
+            // Habilitar controles
+            document.getElementById('messageInput').disabled = false;
+            document.getElementById('sendButton').disabled = false;
+            
+            // Cargar journey overview
+            await loadJourneyOverview();
+            
+            // Cargar historial de chat
+            await loadChatHistory();
+        }
+
+        // Cargar overview del journey
+        async function loadJourneyOverview() {
+            if (!currentUser || !currentUser.leadjourney_id) {
+                document.getElementById('journeySteps').innerHTML = 
+                    '<div style="color: #6c757d;">Este usuario no tiene journey asignado</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${FLASK_API_URL}/api/user/${currentUser.id}/journey-overview`);
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Error cargando journey');
+                }
+                
+                currentJourneyOverview = data;
+                
+                // Actualizar progreso
+                const progressFill = document.getElementById('progressFill');
+                const progressText = document.getElementById('progressText');
+                progressFill.style.width = `${data.journey.progreso_porcentaje}%`;
+                progressText.textContent = `${Math.round(data.journey.progreso_porcentaje)}% completado`;
+                
+                // Mostrar pasos del journey
+                const stepsContainer = document.getElementById('journeySteps');
+                stepsContainer.innerHTML = '';
+                
+                data.nodos.forEach((nodo, index) => {
+                    const stepDiv = document.createElement('div');
+                    stepDiv.className = 'journey-step';
+                    
+                    let stepClass = 'step-pending';
+                    let stepIcon = index + 1;
+                    
+                    if (nodo.completado) {
+                        stepClass = 'step-completed';
+                        stepIcon = '✓';
+                    } else if (data.current_step && data.current_step.id === nodo.id) {
+                        stepClass = 'step-current';
+                        stepIcon = '◉';
+                    }
+                    
+                    stepDiv.innerHTML = `
+                        <div class="step-indicator ${stepClass}">${stepIcon}</div>
+                        <div>
+                            <strong>${nodo.nombre}</strong>
+                            ${nodo.completado ? '<span style="color: #28a745; font-size: 11px;"> ✓ Completado</span>' : ''}
+                        </div>
+                    `;
+                    
+                    stepsContainer.appendChild(stepDiv);
+                });
+                
+            } catch (error) {
+                console.error('Error cargando journey overview:', error);
+                document.getElementById('journeySteps').innerHTML = 
+                    `<div style="color: #dc3545;">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Cargar historial de chat
+        async function loadChatHistory() {
+            if (!currentUser) return;
+            
+            try {
+                const response = await fetch(`${FLASK_API_URL}/api/user/${currentUser.id}/chat-history?limit=20`);
+                const data = await response.json();
+                
+                const messagesContainer = document.getElementById('chatMessages');
+                messagesContainer.innerHTML = '';
+                
+                if (data.history.length === 0) {
+                    messagesContainer.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 20px;">No hay mensajes anteriores</div>';
+                    return;
+                }
+                
+                // Mostrar historial (más recientes primero, pero invertir para mostrar cronológicamente)
+                data.history.reverse().forEach(chat => {
+                    addHistoryMessage(chat.message, chat.role === 'usuario', chat.timestamp);
+                });
+                
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                
+            } catch (error) {
+                console.error('Error cargando historial:', error);
+            }
+        }
+
+        // Añadir mensaje del historial
+        function addHistoryMessage(text, isUser, timestamp) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'message-user' : 'message-bot'}`;
+
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            bubble.textContent = text;
+
+            messageDiv.appendChild(bubble);
+
+            // Añadir timestamp
+            const timeDiv = document.createElement('div');
+            timeDiv.style.fontSize = '10px';
+            timeDiv.style.opacity = '0.6';
+            timeDiv.style.marginTop = '5px';
+            timeDiv.textContent = new Date(timestamp).toLocaleString();
+            messageDiv.appendChild(timeDiv);
+
+            document.getElementById('chatMessages').appendChild(messageDiv);
+        }
+
+        // Añadir mensaje nuevo al chat
+        function addMessage(text, isUser = false, meta = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'message-user' : 'message-bot'}`;
+
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            bubble.textContent = text;
+
+            messageDiv.appendChild(bubble);
+
+            if (meta) {
+                const metaDiv = document.createElement('div');
+                metaDiv.className = 'message-debug';
+                metaDiv.innerHTML = `
+                    Intención: <strong>${meta.intent}</strong> 
+                    (${(meta.confidence * 100).toFixed(1)}%) | 
+                    Entidades: ${meta.entities.map(e => `${e.type}:${e.value}`).join(', ') || 'Ninguna'}
+                `;
+                messageDiv.appendChild(metaDiv);
+            }
+
+            document.getElementById('chatMessages').appendChild(messageDiv);
+            document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+        }
+
+        // Enviar mensaje
+        async function sendMessage() {
+            if (!currentUser) return;
+            
+            const message = document.getElementById('messageInput').value.trim();
+            if (!message) return;
+
+            // Mostrar mensaje del usuario
+            addMessage(message, true);
+            document.getElementById('messageInput').value = '';
+
+            // Mostrar indicador de carga
+            document.getElementById('loadingIndicator').style.display = 'block';
+
+            try {
+                // Enviar a la API del chatbot
+                const response = await fetch(`${CHATBOT_API_URL}/api/message`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        chat_id: `integrated_chat_${currentUser.id}`,
+                        user_id: currentUser.id.toString(),
+                        channel: 'integrated_web'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Mostrar respuesta del bot
+                    addMessage(data.response, false, data.classification);
+                    
+                    // Actualizar journey overview después del mensaje
+                    setTimeout(loadJourneyOverview, 1000);
+                } else {
+                    addMessage(`Error: ${data.error}`, false);
+                }
+
+            } catch (error) {
+                addMessage(`Error de conexión: ${error.message}`, false);
+            }
+
+            document.getElementById('loadingIndicator').style.display = 'none';
+        }
+
+        // Manejar Enter
+        function handleEnter(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // Limpiar chat actual
+        function clearCurrentChat() {
+            document.getElementById('chatMessages').innerHTML = '';
+            addMessage('Chat limpiado. Continúa la conversación...', false);
+        }
+
+        // Mostrar modal de journeys
+        function showJourneyModal() {
+            if (!currentUser) return;
+            
+            const modal = document.getElementById('journeyModal');
+            const optionsContainer = document.getElementById('journeyOptions');
+            
+            optionsContainer.innerHTML = '';
+            journeys.forEach(journey => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'journey-option';
+                optionDiv.onclick = () => assignJourney(journey.id);
+                
+                optionDiv.innerHTML = `
+                    <strong>${journey.nombre}</strong>
+                    <div style="font-size: 12px; color: #6c757d;">${journey.descripcion}</div>
+                    <div style="font-size: 11px; margin-top: 5px;">
+                        ${journey.nodos_count} nodos | ${journey.users_count} usuarios
+                    </div>
+                `;
+                
+                optionsContainer.appendChild(optionDiv);
+            });
+            
+            modal.style.display = 'block';
+        }
+
+        // Cerrar modal
+        function closeJourneyModal() {
+            document.getElementById('journeyModal').style.display = 'none';
+        }
+
+        // Asignar journey
+        async function assignJourney(journeyId) {
+            if (!currentUser) return;
+            
+            try {
+                const response = await fetch(`${FLASK_API_URL}/api/user/${currentUser.id}/assign-journey`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        journey_id: journeyId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Actualizar información del usuario
+                    const journey = journeys.find(j => j.id === journeyId);
+                    currentUser.leadjourney_id = journeyId;
+                    currentUser.journey_name = journey.nombre;
+                    
+                    // Actualizar UI
+                    document.getElementById('userJourney').textContent = journey.nombre;
+                    addMessage(`Journey "${journey.nombre}" asignado correctamente`, false);
+                    
+                    // Recargar overview
+                    await loadJourneyOverview();
+                } else {
+                    addMessage(`Error asignando journey: ${data.error}`, false);
+                }
+
+            } catch (error) {
+                addMessage(`Error: ${error.message}`, false);
+            }
+
+            closeJourneyModal();
+        }
+
+        // Event listeners
+        document.getElementById('searchFilter').addEventListener('input', () => {
+            setTimeout(loadUsers, 300); // Debounce
+        });
+
+        document.getElementById('clientFilter').addEventListener('change', loadUsers);
+
+        // Cerrar modal al hacer click fuera
+        window.onclick = function(event) {
+            const modal = document.getElementById('journeyModal');
+            if (event.target === modal) {
+                closeJourneyModal();
+            }
+        }
+    </script>
+</body>
+</html>

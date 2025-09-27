@@ -1,0 +1,258 @@
+{% extends 'partials/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+            <h4 class="mb-0 font-size-18">Clientes</h4>
+            <div class="page-title-right">
+                <ol class="breadcrumb m-0">
+                    <li class="breadcrumb-item"><a href="#">Usuarios</a></li>
+                    <li class="breadcrumb-item active">Clientes</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Clientes registrados</h5>
+                <button type="button" class="btn btn-primary btn-sm" id="btnNuevoCliente">
+                    <i class="bx bx-plus me-1"></i> Nuevo Cliente
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="tablaClientes">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th style="width: 180px;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Rellenado por JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Nuevo Cliente -->
+<div class="modal fade" id="modalNuevoCliente" tabindex="-1" aria-labelledby="nuevoClienteLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="formNuevoCliente" method="post">
+        <div class="modal-header">
+          <h5 class="modal-title" id="nuevoClienteLabel">Agregar nuevo cliente</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          {% if form %}
+              {{ form.hidden_tag() }}
+              <div class="mb-3">
+                {{ form.nombre.label(class="form-label") }}
+                {{ form.nombre(class="form-control", id="nombreCliente") }}
+                <div class="invalid-feedback" id="nombreError"></div>
+              </div>
+          {% else %}
+              <div class="alert alert-danger">Formulario no disponible</div>
+          {% endif %}
+        </div>
+        <div class="modal-footer">
+          {% if form %}
+              {{ form.submit(class="btn btn-primary") }}
+          {% endif %}
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const tbody = document.querySelector("#tablaClientes tbody");
+    const modalEl = document.getElementById("modalNuevoCliente");
+    const modal = new bootstrap.Modal(modalEl);
+    const form = document.getElementById("formNuevoCliente");
+    const inputNombre = document.getElementById("nombreCliente");
+    const errorDiv = document.getElementById("nombreError");
+    const modalTitle = document.getElementById("nuevoClienteLabel");
+    const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+
+    let mode = "create";
+    let editId = null;
+
+    function setMode(newMode, data = null) {
+        mode = newMode;
+        if (mode === "create") {
+            modalTitle.textContent = "Agregar nuevo cliente";
+            if (submitBtn) submitBtn.textContent = "Guardar";
+            form.reset();
+            inputNombre.classList.remove("is-invalid");
+            errorDiv.textContent = "";
+            editId = null;
+        } else {
+            modalTitle.textContent = "Editar cliente";
+            if (submitBtn) submitBtn.textContent = "Actualizar";
+            inputNombre.value = data?.nombre ?? "";
+            inputNombre.classList.remove("is-invalid");
+            errorDiv.textContent = "";
+            editId = data?.id ?? null;
+        }
+    }
+
+    async function cargarClientes() {
+        try {
+            const res = await fetch("/usuarios/api/clientes");
+            const data = await res.json();
+            tbody.innerHTML = "";
+
+            data.forEach(c => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${c.id}</td>
+                    <td>${c.nombre}</td>
+                    <td>
+                        <button class="btn btn-sm btn-success me-1 btn-ingresar" data-id="${c.id}" title="Ingresar">
+                            <i class="bx bx-log-in-circle"></i>
+                        </button>
+                        <button class="btn btn-sm btn-warning me-1 btn-editar" data-id="${c.id}" data-nombre="${c.nombre}" title="Editar">
+                            <i class="bx bx-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger btn-eliminar" data-id="${c.id}" title="Eliminar">
+                            <i class="bx bx-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            tbody.querySelectorAll(".btn-editar").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const id = Number(btn.dataset.id);
+                    const nombre = btn.dataset.nombre || "";
+                    setMode("edit", { id, nombre });
+                    modal.show();
+                });
+            });
+
+            tbody.querySelectorAll(".btn-eliminar").forEach(btn => {
+                btn.addEventListener("click", async () => {
+                    const id = Number(btn.dataset.id);
+                    const confirm = await Swal.fire({
+                        title: '¿Eliminar cliente?',
+                        text: "Esta acción no se puede deshacer.",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Sí, eliminar',
+                        cancelButtonText: 'Cancelar'
+                    });
+                    if (!confirm.isConfirmed) return;
+
+                    try {
+                        Swal.fire({ title: 'Eliminando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+                        const res = await fetch(`/usuarios/api/clientes/${id}`, { method: "DELETE" });
+                        const json = await res.json();
+
+                        if (!res.ok || json?.success === false) {
+                            throw new Error(json?.error || "Error desconocido");
+                        }
+
+                        await cargarClientes();
+                        Swal.fire({ icon: 'success', title: 'Cliente eliminado', timer: 1500, showConfirmButton: false });
+                    } catch (err) {
+                        Swal.fire({ icon: 'error', title: 'Error al eliminar', text: err.message });
+                    }
+                });
+            });
+
+            tbody.querySelectorAll(".btn-ingresar").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const id = Number(btn.dataset.id);
+                    window.location.href = `/usuarios/clientes/${id}/usuarios`;
+                });
+            });
+        } catch (err) {
+            console.error("Error al cargar clientes", err);
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-danger">Error al cargar clientes</td></tr>';
+        }
+    }
+
+    document.getElementById("btnNuevoCliente").addEventListener("click", () => {
+        setMode("create");
+        modal.show();
+    });
+
+    form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        inputNombre.classList.remove("is-invalid");
+        errorDiv.textContent = "";
+
+        const payload = { nombre: (inputNombre.value || "").trim() };
+        if (!payload.nombre) {
+            inputNombre.classList.add("is-invalid");
+            errorDiv.textContent = "El nombre es obligatorio.";
+            return;
+        }
+
+        try {
+            let url = "/usuarios/api/clientes";
+            let method = "POST";
+            let loadingText = "Creando...";
+            let successText = "Cliente creado";
+
+            if (mode === "edit" && editId) {
+                url = `/usuarios/api/clientes/${editId}`;
+                method = "PUT";
+                loadingText = "Actualizando...";
+                successText = "Cliente actualizado";
+            }
+
+            Swal.fire({ title: loadingText, allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            const res = await fetch(url, {
+                method,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            const json = await res.json();
+
+            if (!res.ok) {
+                const errMsg = json?.errors?.nombre?.[0] || json?.error || "Error desconocido";
+                inputNombre.classList.add("is-invalid");
+                errorDiv.textContent = errMsg;
+                Swal.close();
+                return;
+            }
+
+            modal.hide();
+            setMode("create");
+            await cargarClientes();
+
+            Swal.fire({ icon: 'success', title: successText, timer: 1500, showConfirmButton: false });
+        } catch (err) {
+            console.error("Error en submit", err);
+            Swal.fire({ icon: 'error', title: 'Error de red o servidor', text: err.message });
+        }
+    });
+
+    cargarClientes();
+});
+</script>
+
+{% endblock content %}

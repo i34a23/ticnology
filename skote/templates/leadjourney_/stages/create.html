@@ -1,0 +1,385 @@
+{% extends 'partials/base.html' %}
+
+{% block title %}Crear Stage - {{ journey.nombre }}{% endblock %}
+
+{% block page_title %}
+<div class="row">
+    <div class="col-12">
+        <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+            <h4 class="mb-sm-0 font-size-18">Crear Nuevo Stage</h4>
+
+            <div class="page-title-right">
+                <ol class="breadcrumb m-0">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('leadjourney.index') }}">Lead Journeys</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('leadjourney.view', journey_id=journey.id) }}">{{ journey.slug }}</a></li>
+                    <li class="breadcrumb-item active">Crear Stage</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title mb-0">Información del Stage</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('leadjourney.stages_create', journey_id=journey.id) }}">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="nombre" class="form-label">Nombre del Stage <span class="text-danger">*</span></label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="nombre" 
+                                       name="nombre" 
+                                       placeholder="Ej: Evaluación de Experiencia"
+                                       required
+                                       value="{{ request.form.get('nombre', '') }}">
+                                <div class="form-text">Un nombre descriptivo para esta etapa del journey.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="orden" class="form-label">Orden</label>
+                                <input type="number" 
+                                       class="form-control" 
+                                       id="orden" 
+                                       name="orden" 
+                                       placeholder="Auto"
+                                       min="1"
+                                       value="{{ request.form.get('orden', '') }}">
+                                <div class="form-text">Posición en el flujo (auto-calculado si se deja vacío).</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="descripcion" class="form-label">Descripción</label>
+                        <textarea class="form-control" 
+                                  id="descripcion" 
+                                  name="descripcion" 
+                                  rows="3" 
+                                  placeholder="Describe el propósito de esta etapa del journey...">{{ request.form.get('descripcion', '') }}</textarea>
+                        <div class="form-text">Opcional. Describe qué se logra en esta etapa.</div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="sla_hours" class="form-label">SLA (Tiempo límite)</label>
+                                <div class="input-group">
+                                    <input type="number" 
+                                           class="form-control" 
+                                           id="sla_hours" 
+                                           name="sla_hours" 
+                                           placeholder="24"
+                                           min="0"
+                                           step="0.5"
+                                           value="{{ request.form.get('sla_hours', '') }}">
+                                    <span class="input-group-text">horas</span>
+                                </div>
+                                <div class="form-text">Tiempo máximo esperado para completar este stage.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check mt-4">
+                                    <input class="form-check-input" 
+                                           type="checkbox" 
+                                           id="allow_manual_override" 
+                                           name="allow_manual_override"
+                                           {{ 'checked' if request.form.get('allow_manual_override') }}>
+                                    <label class="form-check-label" for="allow_manual_override">
+                                        Permitir Override Manual
+                                    </label>
+                                    <div class="form-text">Permite completar manualmente este stage sin cumplir todos los criterios.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-info mb-4">
+                        <div class="card-header bg-info-subtle">
+                            <h6 class="mb-0">
+                                <i class="bx bx-brain me-1"></i>
+                                Prompt para Agente IA
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="prompt_nombre" class="form-label">Nombre del Prompt</label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="prompt_nombre" 
+                                       name="prompt_nombre" 
+                                       placeholder="Ej: Evaluador de Experiencia Laboral"
+                                       value="{{ request.form.get('prompt_nombre', '') }}">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="prompt_text" class="form-label">Texto del Prompt <span class="text-danger">*</span></label>
+                                <textarea class="form-control" 
+                                          id="prompt_text" 
+                                          name="prompt_text" 
+                                          rows="6" 
+                                          required
+                                          placeholder="Ejemplo:
+Eres un asistente especializado en evaluación de perfiles profesionales.
+Tu tarea es determinar si el candidato tiene experiencia laboral relevante.
+
+Criterios a evaluar:
+- Tiempo total de experiencia
+- Relevancia del sector
+- Nivel de responsabilidad
+
+Responde con un JSON que incluya:
+- has_experience: boolean
+- experience_years: number
+- experience_level: 'junior'|'mid'|'senior'
+- relevant_sectors: array">{{ request.form.get('prompt_text', '') }}</textarea>
+                                <div class="form-text">
+                                    Este prompt será utilizado por el agente IA para procesar esta etapa. 
+                                    Puedes usar variables como {user_data}, {previous_stage_output}, etc.
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="modelo_llm" class="form-label">Modelo LLM</label>
+                                        <select class="form-select" id="modelo_llm" name="modelo_llm">
+                                            <option value="">Usar modelo por defecto</option>
+                                            <option value="gpt-4" {{ 'selected' if request.form.get('modelo_llm') == 'gpt-4' }}>GPT-4</option>
+                                            <option value="gpt-3.5-turbo" {{ 'selected' if request.form.get('modelo_llm') == 'gpt-3.5-turbo' }}>GPT-3.5 Turbo</option>
+                                            <option value="claude-3" {{ 'selected' if request.form.get('modelo_llm') == 'claude-3' }}>Claude-3</option>
+                                            <option value="llama3" {{ 'selected' if request.form.get('modelo_llm') == 'llama3' }}>Llama 3</option>
+                                            <option value="mistral-7b" {{ 'selected' if request.form.get('modelo_llm') == 'mistral-7b' }}>Mistral 7B</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="variables_json" class="form-label">Variables Esperadas (JSON)</label>
+                                        <textarea class="form-control" 
+                                                  id="variables_json" 
+                                                  name="variables_json" 
+                                                  rows="3"
+                                                  placeholder='{"user_data": "object", "form_responses": "array"}'>{{ request.form.get('variables_json', '') }}</textarea>
+                                        <div class="form-text">Estructura JSON de variables que recibirá el prompt.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-success mb-4">
+                        <div class="card-header bg-success-subtle">
+                            <h6 class="mb-0">
+                                <i class="bx bx-check-circle me-1"></i>
+                                Criterios de Finalización
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="completion_criteria" class="form-label">Criterios (JSON)</label>
+                                <textarea class="form-control" 
+                                          id="completion_criteria" 
+                                          name="completion_criteria" 
+                                          rows="4"
+                                          placeholder='{
+  "all_steps_completed": true,
+  "required_fields": ["experience_years", "has_experience"],
+  "min_confidence": 0.8
+}'>{{ request.form.get('completion_criteria', '') }}</textarea>
+                                <div class="form-text">Condiciones que deben cumplirse para considerar completado este stage.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('leadjourney.view', journey_id=journey.id) }}" class="btn btn-secondary">
+                            <i class="bx bx-arrow-back me-1"></i>
+                            Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bx bx-check me-1"></i>
+                            Crear Stage
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bx bx-info-circle me-1"></i>
+                    Journey: {{ journey.nombre }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <small class="text-muted">Slug:</small>
+                    <p class="mb-1"><code>{{ journey.slug }}</code></p>
+                </div>
+                <div class="mb-3">
+                    <small class="text-muted">Estado:</small>
+                    <p class="mb-1">
+                        {% if journey.status == 'draft' %}
+                            <span class="badge bg-warning">Borrador</span>
+                        {% elif journey.status == 'published' %}
+                            <span class="badge bg-success">Publicado</span>
+                        {% elif journey.status == 'archived' %}
+                            <span class="badge bg-secondary">Archivado</span>
+                        {% endif %}
+                    </p>
+                </div>
+                </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bx bx-help-circle me-1"></i>
+                    Ayuda
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info" role="alert">
+                    <h6 class="alert-heading">¿Qué es un Stage?</h6>
+                    <p class="mb-2">Un Stage es una etapa del journey que agrupa varios steps relacionados. Cada stage tiene un prompt principal que será procesado por un agente IA.</p>
+                    <hr>
+                    <p class="mb-0">Después de crear el stage, podrás agregar steps específicos que detallan las tareas granulares.</p>
+                </div>
+                
+                <div class="mt-4">
+                    <h6>Tips para el Prompt:</h6>
+                    <ul class="list-unstyled mt-2">
+                        <li class="mb-2">
+                            <i class="bx bx-check text-success me-1"></i>
+                            <small>Sé específico en las instrucciones</small>
+                        </li>
+                        <li class="mb-2">
+                            <i class="bx bx-check text-success me-1"></i>
+                            <small>Define el formato de respuesta esperado</small>
+                        </li>
+                        <li class="mb-2">
+                            <i class="bx bx-check text-success me-1"></i>
+                            <small>Usa variables para datos dinámicos</small>
+                        </li>
+                        <li class="mb-2">
+                            <i class="bx bx-check text-success me-1"></i>
+                            <small>Incluye ejemplos si es necesario</small>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Validar JSON en tiempo real
+    function validateJSON(textareaId, feedbackId) {
+        const textarea = document.getElementById(textareaId);
+        const value = textarea.value.trim();
+        
+        let feedback = document.getElementById(feedbackId);
+        if (!feedback) {
+            feedback = document.createElement('div');
+            feedback.id = feedbackId;
+            feedback.className = 'form-text';
+            textarea.parentNode.appendChild(feedback);
+        }
+        
+        if (value === '') {
+            feedback.textContent = '';
+            textarea.classList.remove('is-valid', 'is-invalid');
+            return;
+        }
+        
+        try {
+            JSON.parse(value);
+            textarea.classList.remove('is-invalid');
+            textarea.classList.add('is-valid');
+            feedback.className = 'form-text text-success';
+            feedback.textContent = 'JSON válido';
+        } catch (e) {
+            textarea.classList.remove('is-valid');
+            textarea.classList.add('is-invalid');
+            feedback.className = 'form-text text-danger';
+            feedback.textContent = 'JSON inválido: ' + e.message;
+        }
+    }
+    
+    // Validar campos JSON
+    document.getElementById('variables_json').addEventListener('input', function() {
+        validateJSON('variables_json', 'variables_json_feedback');
+    });
+    
+    document.getElementById('completion_criteria').addEventListener('input', function() {
+        validateJSON('completion_criteria', 'completion_criteria_feedback');
+    });
+    
+    // Auto-generar nombre del prompt basado en el nombre del stage
+    document.getElementById('nombre').addEventListener('input', function(e) {
+        const promptNombre = document.getElementById('prompt_nombre');
+        if (!promptNombre.dataset.manuallyEdited && e.target.value) {
+            promptNombre.value = 'Procesador de ' + e.target.value;
+        }
+    });
+    
+    document.getElementById('prompt_nombre').addEventListener('input', function(e) {
+        e.target.dataset.manuallyEdited = 'true';
+    });
+    
+    // Formatear JSON automáticamente
+    function formatJSON(textareaId) {
+        const textarea = document.getElementById(textareaId);
+        const value = textarea.value.trim();
+        
+        if (value === '') return;
+        
+        try {
+            const parsed = JSON.parse(value);
+            textarea.value = JSON.stringify(parsed, null, 2);
+            validateJSON(textareaId, textareaId + '_feedback');
+        } catch (e) {
+            // No formatear si no es JSON válido
+        }
+    }
+    
+    // Botones para formatear JSON
+    document.addEventListener('DOMContentLoaded', function() {
+        // Agregar botones de formateo
+        const jsonTextareas = ['variables_json', 'completion_criteria'];
+        
+        jsonTextareas.forEach(function(id) {
+            const textarea = document.getElementById(id);
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'btn btn-outline-secondary btn-sm mt-1';
+            button.innerHTML = '<i class="bx bx-code me-1"></i>Formatear JSON';
+            button.onclick = function() { formatJSON(id); };
+            
+            textarea.parentNode.appendChild(button);
+        });
+        
+        // Validar JSON inicial si ya tiene contenido
+        jsonTextareas.forEach(function(id) {
+            const textarea = document.getElementById(id);
+            if (textarea.value.trim()) {
+                validateJSON(id, id + '_feedback');
+            }
+        });
+    });
+</script>
+{% endblock %}

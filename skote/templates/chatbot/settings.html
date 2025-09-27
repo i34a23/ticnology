@@ -1,0 +1,56 @@
+{% extends "partials/base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h1 class="mb-4">Configuraciones del Agente Chatbot</h1>
+
+    <!-- Mensajes flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Formulario de configuraciones -->
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0">Parámetros del modelo</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('chatbot.manage_settings') }}">
+                <div class="mb-3">
+                    <label for="model" class="form-label">Modelo por defecto</label>
+                    <input type="text" class="form-control" id="model" name="model"
+                           value="{{ settings['model'] }}" placeholder="gpt-4o-mini, claude-3, etc." required>
+                </div>
+                <div class="mb-3">
+                    <label for="temperature" class="form-label">Temperatura</label>
+                    <input type="number" step="0.1" min="0" max="1" class="form-control" id="temperature" name="temperature"
+                           value="{{ settings['temperature'] }}">
+                </div>
+                <div class="mb-3">
+                    <label for="max_tokens" class="form-label">Límite de Tokens</label>
+                    <input type="number" class="form-control" id="max_tokens" name="max_tokens"
+                           value="{{ settings['max_tokens'] }}">
+                </div>
+                <div class="mb-3">
+                    <label for="timeout" class="form-label">Timeout (segundos)</label>
+                    <input type="number" class="form-control" id="timeout" name="timeout"
+                           value="{{ settings['timeout'] }}">
+                </div>
+                <div class="mb-3">
+                    <label for="language" class="form-label">Idioma por defecto</label>
+                    <input type="text" class="form-control" id="language" name="language"
+                           value="{{ settings['language'] }}">
+                </div>
+                <button type="submit" class="btn btn-primary">Guardar Configuraciones</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

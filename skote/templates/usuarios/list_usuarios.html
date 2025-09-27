@@ -1,0 +1,551 @@
+{% extends 'partials/base.html' %}
+
+{% block content %}
+
+<div class="row">
+  <div class="col-12">
+    <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+      <h4 class="mb-0 font-size-18">Usuarios de {{ cliente.nombre }}</h4>
+      <div class="page-title-right">
+        <ol class="breadcrumb m-0">
+          <li class="breadcrumb-item"><a href="/usuarios">Usuarios</a></li>
+          <li class="breadcrumb-item"><a href="/usuarios">Clientes</a></li>
+          <li class="breadcrumb-item active">Usuarios</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Usuarios vinculados</h5>
+    <button class="btn btn-primary btn-sm" id="btnNuevoUsuario">
+      <i class="bx bx-plus me-1"></i> Nuevo Usuario
+    </button>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0" id="tablaUsuarios">
+        <thead class="table-light">
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Estado</th>
+            <th>Step</th>
+            <th>LeadJourney</th>
+            <th style="width: 200px;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div id="tablaUsuariosEmpty" class="text-muted text-center py-3" style="display:none;">
+        No hay usuarios registrados
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Detalle/Edición de Usuario -->
+<div class="modal fade" id="modalDetalleUsuario" tabindex="-1" aria-labelledby="modalDetalleUsuarioLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <form class="modal-content" id="formUsuario">
+      <div class="modal-header">
+        <h5 class="modal-title mb-0" id="modalDetalleUsuarioLabel">Editar usuario</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Alertas -->
+        <div id="alertForm" class="alert alert-danger d-none"></div>
+        <input type="hidden" id="inpId">
+
+        <!-- Encabezado -->
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Nombre</label>
+            <input type="text" class="form-control" id="inpNombre" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Apellido</label>
+            <input type="text" class="form-control" id="inpApellido" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control" id="inpEmail">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Telefono</label>
+            <input type="phone" class="form-control" id="inpTelefono">
+          </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+          <div class="col-md-4">
+            <label class="form-label">Estado</label>
+            <select class="form-select" id="selEstado">
+              <option value="pendiente">Pendiente</option>
+              <option value="en_curso">En curso</option>
+              <option value="en_pausa">En pausa</option>
+              <option value="terminado">Terminado</option>
+              <option value="cancelado">Cancelado</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Step</label>
+            <input type="text" class="form-control" id="inpStep" placeholder="-">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">LeadJourney</label>
+            <select class="form-select" id="selJourney">
+              <option value="">(Sin Journey)</option>
+            </select>
+            <div class="form-text" id="lblJourneyActual"></div>
+          </div>
+        </div>
+
+        <!-- Vista rápida de user_data (otros campos) -->
+        <hr class="my-3">
+        <div>
+          <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Otros campos de user_data</h6>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnToggleRaw">
+              Ver JSON
+            </button>
+          </div>
+
+          <!-- Tabla key/value editable a nivel 1 -->
+          <div id="userDataPretty" class="mt-2">
+            <div class="table-responsive">
+              <table class="table table-sm mb-0" id="tablaUserDataKV">
+                <thead>
+                  <tr>
+                    <th style="width: 35%;">Clave</th>
+                    <th>Valor</th>
+                    <th style="width: 1%;"></th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+              <button type="button" id="btnAddKV" class="btn btn-sm btn-outline-primary mt-2">Agregar campo</button>
+            </div>
+          </div>
+
+          <!-- JSON crudo -->
+          <textarea id="userDataRaw" class="form-control mt-2" rows="8" style="display:none;"></textarea>
+          <div class="form-text">El backend exige al menos <code>nombre</code> y <code>apellido</code> en <code>user_data</code>. :contentReference[oaicite:2]{index=2}</div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <a id="btnFicha" href="#" class="btn btn-info">
+          <i class="bx bx-user"></i> Ver ficha
+        </a>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btnGuardar">
+          <span class="spinner-border spinner-border-sm d-none me-2" id="spGuardar"></span>
+          Guardar cambios
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const clienteId = {{ cliente.id|tojson }};
+  const tbody = document.querySelector("#tablaUsuarios tbody");
+  const emptyEl = document.getElementById("tablaUsuariosEmpty");
+
+  // ---------- CSRF helpers ----------
+  function getCSRFToken() {
+    const el = document.querySelector('meta[name="csrf-token"]');
+    return el ? el.content : '';
+  }
+  function withCSRF(options = {}) {
+    const token = getCSRFToken();
+    const baseHeaders = {
+      'X-CSRFToken': token,
+      'X-CSRF-Token': token
+    };
+    const mergedHeaders = { ...(options.headers || {}), ...baseHeaders };
+    return {
+      credentials: 'same-origin',
+      ...options,
+      headers: mergedHeaders
+    };
+  }
+  function fetchCSRF(url, options) {
+    return fetch(url, withCSRF(options));
+  }
+  // -----------------------------------
+
+  // Modal refs
+  const modalEl = document.getElementById("modalDetalleUsuario");
+  let modalInstance = null;
+  function modal() {
+    if (!modalInstance && window.bootstrap) {
+      modalInstance = new bootstrap.Modal(modalEl);
+    }
+    return modalInstance;
+  }
+
+  // Form refs
+  const formUsuario = document.getElementById("formUsuario");
+  const alertForm = document.getElementById("alertForm");
+  const inpId = document.getElementById("inpId");
+  const inpNombre = document.getElementById("inpNombre");
+  const inpApellido = document.getElementById("inpApellido");
+  const inpEmail = document.getElementById("inpEmail");
+  const inpTelefono = document.getElementById("inpTelefono");
+  const selEstado = document.getElementById("selEstado");
+  const inpStep = document.getElementById("inpStep");
+  const selJourney = document.getElementById("selJourney");
+  const lblJourneyActual = document.getElementById("lblJourneyActual");
+  const btnFicha = document.getElementById("btnFicha");
+  const btnGuardar = document.getElementById("btnGuardar");
+  const spGuardar = document.getElementById("spGuardar");
+
+  // KV editor / raw JSON
+  const btnToggleRaw = document.getElementById("btnToggleRaw");
+  const kvTableBody = document.querySelector("#tablaUserDataKV tbody");
+  const btnAddKV = document.getElementById("btnAddKV");
+  const userDataRaw = document.getElementById("userDataRaw");
+  const userDataPretty = document.getElementById("userDataPretty");
+
+  // Mapa de usuarios por id
+  const usersMap = new Map();
+
+  // Journeys cache
+  let journeysCache = [];
+
+  // Helpers
+  function unwrapUserData(u) {
+    if (!u || !u.user_data) return {};
+    let obj = u.user_data;
+    if (typeof obj === "string") {
+      try { obj = JSON.parse(obj); } catch { obj = {}; }
+    }
+    if (obj && obj.user_data && typeof obj.user_data === "object") return obj.user_data;
+    return obj;
+  }
+
+  function extractName(u) {
+    const ud = unwrapUserData(u);
+    const nombre = ud.nombre || ud.first_name || "";
+    const apellido = ud.apellido || ud.last_name || "";
+    return (nombre + " " + apellido).trim() || "(sin nombre)";
+  }
+
+  function extractEmail(u) {
+    const ud = unwrapUserData(u);
+    return ud.email || ud.correo || "";
+  }
+
+  function estadoBadge(estadoRaw) {
+    const s = (estadoRaw || "").toString();
+    const base = s.includes(".") ? s.split(".").pop() : s;
+    const classes = {
+      "en_curso": "bg-info",
+      "en_pausa": "bg-warning",
+      "terminado": "bg-success",
+      "pendiente": "bg-secondary",
+      "cancelado": "bg-danger"
+    };
+    const labels = {
+      "en_curso": "En curso",
+      "en_pausa": "Pausado",
+      "terminado": "Completado",
+      "pendiente": "Pendiente",
+      "cancelado": "Cancelado"
+    };
+    return { html: `<span class="badge ${classes[base] || "bg-info"}">${labels[base] || base}</span>`, text: labels[base] || base };
+  }
+
+  // ---- Journeys ----
+  async function cargarJourneys() {
+    try {
+      const res = await fetchCSRF(`/usuarios/api/journeys`);
+      if (!res.ok) throw new Error("Error al obtener journeys");
+      journeysCache = await res.json();
+      selJourney.innerHTML =
+        `<option value="">(Sin Journey)</option>` +
+        (Array.isArray(journeysCache) ? journeysCache.map(j => `<option value="${j.id}">${j.nombre}</option>`).join("") : "");
+    } catch (e) {
+      console.warn("No se pudieron cargar journeys", e);
+      selJourney.innerHTML = `<option value="">(Sin Journey)</option>`;
+    }
+  }
+
+  // ---- KV Editor ----
+  function kvRow(key = "", value = "") {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><input class="form-control form-control-sm key" value="${key}"></td>
+      <td><input class="form-control form-control-sm val" value="${value}"></td>
+      <td><button type="button" class="btn btn-sm btn-outline-danger btn-del-kv" title="Eliminar">&times;</button></td>
+    `;
+    kvTableBody.appendChild(tr);
+  }
+
+  function renderKVFromUserData(ud) {
+    kvTableBody.innerHTML = "";
+    const omit = new Set(["nombre","first_name","apellido","last_name","email","correo"]);
+    Object.keys(ud || {}).sort().forEach(k => {
+      if (omit.has(k)) return;
+      const v = (ud[k] === null || ud[k] === undefined) ? "" : (typeof ud[k] === "object" ? JSON.stringify(ud[k]) : ud[k]);
+      kvRow(k, v);
+    });
+  }
+
+  function collectKVToObject(base) {
+    const ud = { ...base };
+    kvTableBody.querySelectorAll("tr").forEach(tr => {
+      const k = tr.querySelector(".key").value.trim();
+      const v = tr.querySelector(".val").value;
+      if (!k) return;
+      let parsed = v;
+      try {
+        if (/^\s*(\{|\[|true|false|null|-?\d+(\.\d+)?)\s*$/i.test(v)) {
+          parsed = JSON.parse(v);
+        }
+      } catch { parsed = v; }
+      ud[k] = parsed;
+    });
+    return ud;
+  }
+
+  btnAddKV.addEventListener("click", () => kvRow());
+  document.addEventListener("click", (e) => {
+    if (e.target.closest(".btn-del-kv")) {
+      e.target.closest("tr").remove();
+    }
+  });
+
+  btnToggleRaw.addEventListener("click", () => {
+    const rawVisible = userDataRaw.style.display !== "none";
+    if (rawVisible) {
+      userDataRaw.style.display = "none";
+      userDataPretty.style.display = "";
+      btnToggleRaw.textContent = "Ver JSON";
+      try {
+        const parsed = JSON.parse(userDataRaw.value || "{}");
+        renderKVFromUserData(parsed);
+      } catch {}
+    } else {
+      const base = {
+        nombre: inpNombre.value.trim(),
+        apellido: inpApellido.value.trim(),
+        email: inpEmail.value.trim(),
+        telefono: inpTelefono.value.trim()
+      };
+      const ud = collectKVToObject(base);
+      userDataRaw.value = JSON.stringify(ud, null, 2);
+      userDataRaw.style.display = "";
+      userDataPretty.style.display = "none";
+      btnToggleRaw.textContent = "Ver vista amigable";
+    }
+  });
+
+  // ---- Modal para editar usuario ----
+  function abrirModalEdicion(u) {
+    const ud = unwrapUserData(u);
+    inpId.value = u.id;
+    inpNombre.value = ud.nombre || ud.first_name || "";
+    inpApellido.value = ud.apellido || ud.last_name || "";
+    inpEmail.value = ud.email || ud.correo || "";
+    inpTelefono.value = ud.telefono || ud.phone || "";
+    selEstado.value = (u.estado || "pendiente").toString().split(".").pop();
+    inpStep.value = u.current_step_id || "";
+    lblJourneyActual.textContent = u.leadjourney_nombre ? `Actual: ${u.leadjourney_nombre}` : "";
+    selJourney.value = u.leadjourney_id || "";
+
+    renderKVFromUserData(ud);
+    userDataRaw.value = JSON.stringify(ud, null, 2);
+    userDataRaw.style.display = "none";
+    userDataPretty.style.display = "";
+    btnToggleRaw.textContent = "Ver JSON";
+
+    btnFicha.href = `/usuarios/clientes/${clienteId}/usuarios/${u.id}`;
+    btnFicha.style.display = "inline-block";
+    alertForm.classList.add("d-none");
+    modal()?.show();
+  }
+
+  // ---- Modal para crear usuario ----
+  document.getElementById("btnNuevoUsuario").addEventListener("click", () => {
+    inpId.value = "";
+    inpNombre.value = "";
+    inpApellido.value = "";
+    inpEmail.value = "";
+    inpTelefono.value = "";
+    selEstado.value = "pendiente";
+    inpStep.value = "";
+    selJourney.value = "";
+    lblJourneyActual.textContent = "";
+
+    kvTableBody.innerHTML = "";
+    userDataRaw.value = "{}";
+    userDataRaw.style.display = "none";
+    userDataPretty.style.display = "";
+    btnToggleRaw.textContent = "Ver JSON";
+
+    btnFicha.href = "#";
+    btnFicha.style.display = "none"; 
+    alertForm.classList.add("d-none");
+    modal()?.show();
+  });
+
+  // ---- Cargar tabla ----
+  async function cargarUsuarios() {
+    try {
+      const res = await fetchCSRF(`/usuarios/api/clientes/${clienteId}/usuarios`);
+      if (!res.ok) throw new Error("Error al obtener usuarios");
+      const data = await res.json();
+
+      tbody.innerHTML = "";
+      usersMap.clear();
+
+      if (!Array.isArray(data) || data.length === 0) {
+        emptyEl.style.display = "block";
+        return;
+      }
+      emptyEl.style.display = "none";
+
+      data.forEach(u => {
+        usersMap.set(u.id, u);
+        const nombre = extractName(u);
+        const email = extractEmail(u);
+        const estado = estadoBadge(u.estado).html;
+        const journey = u.leadjourney_nombre ? `<span class="badge bg-success">${u.leadjourney_nombre}</span>` : "-";
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${u.id}</td>
+          <td>
+            <div class="fw-semibold">${nombre}</div>
+            <div class="text-muted small">${email}</div>
+          </td>
+          <td>${estado}</td>
+          <td>${u.current_step_id || "-"}</td>
+          <td>${journey}</td>
+          <td>
+            <a href="/usuarios/clientes/${clienteId}/usuarios/${u.id}" class="btn btn-sm btn-info me-1" title="Ver Ficha">
+              <i class="bx bx-user"></i>
+            </a>
+            <button class="btn btn-sm btn-warning me-1 btn-editar" data-id="${u.id}" title="Editar">
+              <i class="bx bx-pencil"></i>
+            </button>
+            <button class="btn btn-sm btn-danger btn-eliminar" data-id="${u.id}" title="Eliminar">
+              <i class="bx bx-trash"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    } catch (err) {
+      console.error("Error al cargar usuarios", err);
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Error al cargar usuarios</td></tr>';
+    }
+  }
+
+  // ---- Delegación: abrir modal en Editar ----
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".btn-editar");
+    if (btn) {
+      const id = Number(btn.dataset.id);
+      const u = usersMap.get(id);
+      if (!u) return;
+      abrirModalEdicion(u);
+    }
+  });
+
+  // ---- Guardar (POST o PUT) ----
+  formUsuario.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    alertForm.classList.add("d-none");
+    btnGuardar.disabled = true;
+    spGuardar.classList.remove("d-none");
+
+    const base = {
+      nombre: inpNombre.value.trim(),
+      apellido: inpApellido.value.trim(),
+      email: inpEmail.value.trim(),
+      telefono: inpTelefono.value.trim()
+    };
+
+    if (!base.nombre || !base.apellido) {
+      alertForm.textContent = "Nombre y Apellido son obligatorios.";
+      alertForm.classList.remove("d-none");
+      btnGuardar.disabled = false;
+      spGuardar.classList.add("d-none");
+      return;
+    }
+
+    let user_data;
+    if (userDataRaw.style.display !== "none") {
+      try {
+        user_data = JSON.parse(userDataRaw.value || "{}");
+      } catch (err) {
+        alertForm.textContent = "JSON inválido en user_data.";
+        alertForm.classList.remove("d-none");
+        btnGuardar.disabled = false;
+        spGuardar.classList.add("d-none");
+        return;
+      }
+      user_data.nombre = base.nombre;
+      user_data.apellido = base.apellido;
+      if (base.email) user_data.email = base.email;
+    } else {
+      user_data = collectKVToObject(base);
+    }
+
+    const payload = {
+      user_data,
+      estado: selEstado.value,
+      step: inpStep.value || null,
+      leadjourney_id: selJourney.value ? Number(selJourney.value) : null
+    };
+
+    let url, method;
+    if (inpId.value) {
+      url = `/usuarios/api/usuarios/${inpId.value}`;
+      method = "PUT";
+    } else {
+      url = `/usuarios/api/clientes/${clienteId}/usuarios`;
+      method = "POST";
+    }
+
+    try {
+      const res = await fetchCSRF(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        const msg = data?.error || "No se pudo guardar los cambios.";
+        throw new Error(msg);
+      }
+
+      await cargarUsuarios();
+      modal()?.hide();
+
+    } catch (err) {
+      alertForm.textContent = err.message || "Error desconocido.";
+      alertForm.classList.remove("d-none");
+    } finally {
+      btnGuardar.disabled = false;
+      spGuardar.classList.add("d-none");
+    }
+  });
+
+  // Init
+  cargarJourneys();
+  cargarUsuarios();
+});
+</script>
+
+
+{% endblock content %}

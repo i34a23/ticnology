@@ -1,0 +1,23 @@
+{% extends 'partials/base.html' %}
+{% block title %} {{ agent.nombre }} – Configuración {% endblock title %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+      <h4 class="mb-0 font-size-18">{{ agent.nombre }} – Configuración</h4>
+      <div class="page-title-right">
+        <a href="{{ url_for('chatbot.admin_client_agents', cliente_id=agent.cliente_id) }}" class="btn btn-outline-secondary">
+          ← Volver
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <p class="text-muted mb-0">Aquí prepararemos la vista avanzada para setear tono, guardrails, memoria, plantillas, etc.</p>
+  </div>
+</div>
+{% endblock content %}

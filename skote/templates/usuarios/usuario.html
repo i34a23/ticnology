@@ -1,0 +1,491 @@
+{% extends 'partials/base.html' %}
+{% block title %} Usuario #{{ usuario.id }} - {{ user_data.nombre }} {{ user_data.apellido }} {%
+endblock title %}
+
+{% block content %}
+<!-- start page title -->
+<div class="row">
+  <div class="col-12">
+    <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+      <h4 class="mb-sm-0 font-size-18">
+        <i class="fas fa-user-circle me-2"></i>
+        {{ user_data.nombre }} {{ user_data.apellido }}
+        <span class="text-muted ms-2">#{{ usuario.id }}</span>
+      </h4>
+      <div class="page-title-right">
+        <a href="{{ url_for('usuarios.vista_usuarios_cliente', cliente_id=usuario.cliente_id) }}"
+          class="btn btn-light btn-sm me-2">
+          <i class="fas fa-arrow-left me-1"></i> Volver
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- end page title -->
+<style>
+  /* ===== Chat estilo WhatsApp ===== */
+  .chat-sidebar {
+    position: sticky;
+    top: 1rem;
+    height: calc(79vh - 140px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    background-color: #efeae2;
+    background-image:
+      radial-gradient(#d1ccc0 1px, transparent 1px),
+      radial-gradient(#d1ccc0 1px, transparent 1px);
+    background-position: 0 0, 25px 25px;
+    background-size: 50px 50px;
+    border-radius: .5rem;
+  }
+
+  .chat-stream {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    padding: 1rem .75rem 2.5rem;
+  }
+
+  .msg-row {
+    display: flex;
+    width: 100%;
+  }
+
+  .msg-row.user {
+    justify-content: flex-start;
+  }
+
+  .msg-row.ai {
+    justify-content: flex-end;
+  }
+
+  .chat-bubble {
+    position: relative;
+    max-width: 78%;
+    padding: .6rem .75rem .55rem .75rem;
+    border-radius: .75rem;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, .08);
+    word-wrap: break-word;
+    line-height: 1.35;
+    font-size: .95rem;
+  }
+
+  /* Usuario (izquierda, gris) */
+  .chat-bubble.user {
+    background: #f0f0f0;
+    color: #111;
+    border-top-left-radius: .25rem;
+  }
+
+  .chat-bubble.user::after {
+    content: "";
+    position: absolute;
+    left: -6px;
+    bottom: 0;
+    width: 12px;
+    height: 12px;
+    background: #f0f0f0;
+    clip-path: polygon(0 100%, 100% 0, 100% 100%);
+  }
+
+  /* Agente (derecha, verde) */
+  .chat-bubble.ai {
+    background: #d9fdd3;
+    color: #111;
+    border-top-right-radius: .25rem;
+  }
+
+  .chat-bubble.ai::after {
+    content: "";
+    position: absolute;
+    right: -6px;
+    bottom: 0;
+    width: 12px;
+    height: 12px;
+    background: #d9fdd3;
+    clip-path: polygon(0 0, 100% 100%, 0 100%);
+  }
+
+  .chat-meta {
+    display: inline-block;
+    font-size: .72rem;
+    color: #5f6b75;
+    margin-left: .5rem;
+    white-space: nowrap;
+  }
+
+  .bubble-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: .25rem;
+    margin-top: .25rem;
+    opacity: .8;
+    font-size: .72rem;
+  }
+
+  /* ===== Timeline / Info ===== */
+  .timeline {
+    position: relative;
+    margin-left: 1rem;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, #556ee6, #e9ecef);
+  }
+
+  .timeline-item {
+    position: relative;
+    padding-left: 2rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: 2px;
+    top: .25rem;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #556ee6;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #556ee6;
+  }
+
+  /* Diferenciación visual por generated_by */
+  .timeline-item.h-ia::before {
+    background: #50a5f1;
+    /* verde tipo success */
+    box-shadow: 0 0 0 2px #50a6f170;
+    /* aro suave verde */
+  }
+
+  .timeline-item.h-usuario::before {
+    background: #34c38e;
+    /* gris neutro */
+    box-shadow: 0 0 0 2px #34c38f6f;
+  }
+
+  .timeline-item.h-ia {
+    /* border-left: 3px solid #10b981; */
+    padding-left: 1.25rem;
+  }
+
+  .timeline-item.h-usuario {
+    /* border-left: 3px solid #6c757d; */
+    padding-left: 1.25rem;
+  }
+
+  .badge-origin {
+    font-size: .7rem;
+    padding: .35em .55em;
+    letter-spacing: .2px;
+  }
+
+  .kv {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: .5rem .75rem;
+  }
+
+  .kv dt {
+    color: #6c757d;
+    font-weight: 500;
+  }
+
+  .kv dd {
+    margin-bottom: 0;
+    font-weight: 400;
+  }
+
+  .user-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #556ee6 0%, #3b5bdb 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 1.2rem;
+  }
+
+  .json-viewer {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.8rem;
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    max-height: 300px;
+    overflow: auto;
+  }
+
+  .card-header-gradient {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 1px solid #dee2e6;
+  }
+
+  .status-badge {
+    font-size: 0.85rem;
+    padding: 0.4em 0.8em;
+  }
+</style>
+
+{# ==== MACROS para normalizar Enum de estado ==== #}
+{% macro enum_value(e) -%}
+{# Soporta Enum real (.value) o string 'EstadoUsuarioEnum.en_curso' #}
+{%- set raw = (e.value if (e is not string and e is not none and (e.value is defined)) else (e|string)) -%}
+{%- set base = raw.split('.')[-1] -%}
+{{ base }}
+{%- endmacro %}
+
+{% macro enum_label(e) -%}
+{%- set k = enum_value(e) -%}
+{{ k.replace('_', ' ')|title }}
+{%- endmacro %}
+
+{% macro estado_badge_class(e) -%}
+{%- set k = enum_value(e) -%}
+{%- if k == 'en_curso' -%}bg-info
+{%- elif k == 'completado' -%}bg-success
+{%- elif k in ['pendiente','en_revision'] -%}bg-secondary
+{%- elif k in ['rechazado','error'] -%}bg-danger
+{%- else -%}bg-info
+{%- endif -%}
+{%- endmacro %}
+
+{# ==== Macro para normalizar generated_by ==== #}
+{% macro who_norm(v) -%}
+{%- set s = (v or '')|lower -%}
+{%- if s in ['ia','agente'] -%}ia{%- else -%}usuario{%- endif -%}
+{%- endmacro %}
+
+{# ==== Macro de chat (WhatsApp) ==== #}
+{% macro chat_message(msg) -%}
+{# msg: {'id','message_data':{'type','content',...}, 'created_at','status'} #}
+{% set t = (msg.message_data.type or 'unknown')|lower %}
+{% set content = msg.message_data.content if msg.message_data.content is not none else (msg.message_data|string) %}
+{% set is_ai = (t == 'ai') %}
+<div class="msg-row {{ 'ai' if is_ai else 'user' }}">
+  <div class="chat-bubble {{ 'ai' if is_ai else 'user' }}">
+    <div class="msg-content" data-raw="{{ content|e }}"></div>
+    <div class="bubble-footer">
+      <span class="chat-meta">{{ msg.created_at.strftime('%H:%M') if msg.created_at }}</span>
+    </div>
+    <div class="position-absolute" style="{{ 'top:.35rem; right:.35rem;' if is_ai else 'top:.35rem; left:.35rem;' }}">
+      <div class="dropdown">
+        <button class="btn btn-sm btn-link text-muted p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+          aria-label="Detalles">
+          <i class="fas fa-ellipsis-v"></i>
+        </button>
+        <div class="dropdown-menu dropdown-menu-end" style="min-width: 320px;">
+          <h6 class="dropdown-header">Detalles del mensaje</h6>
+          <div class="px-3 py-2">
+            <pre class="json-viewer mb-0">{{ msg.message_data | tojson(indent=2) }}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{%- endmacro %}
+
+<div class="row">
+  <!-- LEFT: Chat History -->
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header card-header-gradient d-flex align-items-center justify-content-between">
+        <h5 class="card-title mb-0"><i class="fas fa-comments me-2"></i> Historial de Conversación</h5>
+        <span class="badge bg-primary rounded-pill">{{ chat_histories|length }} mensajes</span>
+      </div>
+      <div class="card-body chat-sidebar" id="chatScroll">
+        {% if chat_histories and chat_histories|length > 0 %}
+        <div class="chat-stream">
+          {% for m in chat_histories %}
+          {{ chat_message(m) }}
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+          <i class="fas fa-comment-slash fa-3x mb-3"></i>
+          <p class="mb-0">No hay mensajes para esta sesión</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: User Info + Hitos -->
+  <div class="col-lg-6">
+    <!-- User summary -->
+    <div class="card mb-4">
+      <div class="card-header card-header-gradient">
+        <h5 class="card-title mb-0 d-flex align-items-center">
+          <i class="fas fa-user me-2"></i> Información del Usuario
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="d-flex align-items-center mb-4">
+          <div class="user-avatar me-3">
+            {{ user_data.nombre[0] if user_data.nombre }}{{ user_data.apellido[0] if
+            user_data.apellido }}
+          </div>
+          <div>
+            <h5 class="mb-0">{{ user_data.nombre }} {{ user_data.apellido }}</h5>
+            <p class="text-muted mb-0">ID: {{ usuario.id }} | Cliente: {{ usuario.cliente_id }}</p>
+          </div>
+        </div>
+
+        <div class="kv mb-4">
+          <dt><i class="fas fa-envelope me-1"></i> Email</dt>
+          <dd>{{ user_data.email or '—' }}</dd>
+
+          <dt><i class="fas fa-phone me-1"></i> Teléfono</dt>
+          <dd>{{ user_data.telefono or '—' }}</dd>
+
+          <dt><i class="fas fa-graduation-cap me-1"></i> Carrera</dt>
+          <dd>{{ user_data.get('carrera de interes', '—') }}</dd>
+
+          <dt><i class="fas fa-tasks me-1"></i> Estado</dt>
+          <dd>
+            <span class="badge {{ estado_badge_class(usuario.estado) }} status-badge">
+              <i class="fas 
+                {% if enum_value(usuario.estado) == 'en_curso' %}fa-sync-alt
+                {% elif enum_value(usuario.estado) == 'completado' %}fa-check-circle
+                {% elif enum_value(usuario.estado) in ['rechazado','error'] %}fa-exclamation-triangle
+                {% else %}fa-clock{% endif %} me-1"></i>
+              {{ enum_label(usuario.estado) }}
+            </span>
+          </dd>
+
+          <dt><i class="fas fa-footsteps me-1"></i> Paso actual</dt>
+          <dd>{{ usuario.step or '—' }}</dd>
+
+
+
+          <dt><i class="fas fa-route me-1"></i> Journey</dt>
+          <dd>
+            {% if usuario.journey %}
+            <span class="badge bg-success status-badge">
+              <i class="fas fa-link me-1"></i>
+              {{ usuario.journey.nombre }}
+            </span>
+            <a href="/leadjourney/{{ usuario.journey.id }}" class="ms-2" target="_blank" data-bs-toggle="tooltip"
+              title="Ver Journey">
+              <i class="fas fa-external-link-alt"></i>
+            </a>
+            {% else %}
+            —
+            {% endif %}
+          </dd>
+
+
+          <dt><i class="fas fa-calendar-plus me-1"></i> Creado</dt>
+          <dd>{{ usuario.created_at.strftime('%d/%m/%Y %H:%M') if usuario.created_at else '—' }}</dd>
+        </div>
+
+        <div class="mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0"><i class="fas fa-code me-1"></i> Datos completos (JSON)</h6>
+            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse"
+              data-bs-target="#userJsonData">
+              <i class="fas fa-expand-alt me-1"></i> Ver completo
+            </button>
+          </div>
+          <div class="collapse" id="userJsonData">
+            <code>
+              {{ user_data | tojson(indent=2) }}
+            </code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hitos -->
+    <div class="card">
+      <div class="card-header card-header-gradient">
+        <h5 class="card-title mb-0 d-flex align-items-center">
+          <i class="fas fa-route me-2"></i>
+          Hitos del Journey
+          <span class="badge bg-primary rounded-pill ms-2">{{ hitos|length }}</span>
+        </h5>
+      </div>
+      <div class="card-body">
+        {% if hitos and hitos|length > 0 %}
+        <div class="timeline">
+          {% for h in hitos %}
+          {% set who = who_norm(h.generated_by) %}
+          <div class="timeline-item {{ 'h-ia' if who=='ia' else 'h-usuario' }}">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+              <div class="d-flex align-items-center">
+                <strong class="d-flex align-items-center">
+                  <i class="fas fa-flag me-2 {{ 'text-info' if who=='ia' else 'text-success' }}"></i>
+                  {{ h.step }}
+                </strong>
+                <span class="ms-2 badge badge-origin {{ 'bg-info' if who=='ia' else 'bg-success' }}">
+                  <i class="fas {{ 'fa-robot' if who=='ia' else 'fa-user' }} me-1"></i>
+                  {{ 'IA' if who=='ia' else 'Usuario' }}
+                </span>
+              </div>
+              <span class="chat-meta">{{ h.timestamp.strftime('%d/%m/%Y %H:%M') if h.timestamp }}</span>
+            </div>
+
+            {% if h.comentario %}
+            <div class="text-muted mb-2">{{ h.comentario }}</div>
+            {% endif %}
+
+            {% if h.attachment and h.attachment not in ['N/A','Pendiente'] %}
+            <div class="mt-2">
+              <a href="{{ h.attachment }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-paperclip me-1"></i> Ver adjunto
+              </a>
+            </div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted">
+          <i class="fas fa-route fa-2x mb-3"></i>
+          <p class="mb-0">No hay hitos registrados</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Renderizar **negrita** y saltos de línea de manera segura
+    document.querySelectorAll('.msg-content').forEach(function (el) {
+      let raw = el.getAttribute('data-raw') || '';
+      raw = raw.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>'); // **texto** -> <strong>texto</strong>
+      raw = raw.replace(/\n/g, '<br>');                           // saltos de línea
+      el.innerHTML = raw; // seguro: entró escapado vía data-raw
+    });
+
+    // Auto-scroll al final del chat
+    const chat = document.getElementById('chatScroll');
+    if (chat) chat.scrollTop = chat.scrollHeight;
+
+    // Tooltips (si los usas)
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+  });
+</script>
+
+</div> <!-- container-fluid -->
+</div>
+<!-- End Page-content -->
+{% endblock content %}

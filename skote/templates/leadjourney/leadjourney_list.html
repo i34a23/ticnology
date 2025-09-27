@@ -1,0 +1,163 @@
+{% extends 'partials/base.html' %}
+{% block title %} Lead Journeys {% endblock title %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+            <h4 class="mb-sm-0 font-size-18">Lead Journeys</h4>
+            <div class="page-title-right">
+                <ol class="breadcrumb m-0">
+                    <li class="breadcrumb-item"><a href="javascript:void(0);">Lead Journey</a></li>
+                    <li class="breadcrumb-item active">Lista</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="card-title">Listado de Journeys</h4>
+                    <button class="btn btn-primary waves-effect waves-light" data-bs-toggle="modal"
+                        data-bs-target="#createJourneyModal">
+                        <i class="fas fa-plus me-2"></i> Crear Nuevo Journey
+                    </button>
+                </div>
+
+                <p class="card-title-desc">
+                    Aquí puedes gestionar todos los journeys de tu chatbot de ventas.
+                </p>
+
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover table-nowrap align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Descripción</th>
+                                <th># Nodos</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for journey, nodos_count in journeys %}
+                            <tr>
+                                <td>{{ journey.id }}</td>
+                                <td>{{ journey.nombre }}</td>
+                                <td>{{ journey.descripcion or '-' }}</td>
+                                <td>{{ nodos_count }}</td>
+                                <td>
+                                    <a href="{{ url_for('leadjourney.view_journey', journey_id=journey.id) }}"
+                                        class="btn btn-sm btn-info">Ver</a>
+
+                                    <!-- Botón para abrir modal de edición -->
+                                    <button class="btn btn-sm btn-warning edit-btn" data-bs-toggle="modal"
+                                        data-bs-target="#editJourneyModal" data-id="{{ journey.id }}"
+                                        data-nombre="{{ journey.nombre }}" data-descripcion="{{ journey.descripcion }}">
+                                        Editar
+                                    </button>
+
+                                    <!-- Formulario Eliminar -->
+                                    <form method="POST"
+                                        action="{{ url_for('leadjourney.delete_journey', journey_id=journey.id) }}"
+                                        style="display:inline-block"
+                                        onsubmit="return confirm('¿Seguro que deseas eliminar este Journey?');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center">No hay journeys registrados.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Crear Journey -->
+<div class="modal fade" id="createJourneyModal" tabindex="-1" aria-labelledby="createJourneyModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createJourneyModalLabel">Crear Nuevo Journey</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{{ url_for('leadjourney.create_or_edit_journey') }}">
+                    {{ form.csrf_token }}
+                    <div class="mb-3">
+                        {{ form.nombre.label(class="form-label") }}
+                        {{ form.nombre(class="form-control", placeholder="Ej: Journey Admisión 2025") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.descripcion.label(class="form-label") }}
+                        {{ form.descripcion(class="form-control", rows="3", placeholder="Breve descripción") }}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Crear Journey</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Editar Journey -->
+<div class="modal fade" id="editJourneyModal" tabindex="-1" aria-labelledby="editJourneyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editJourneyModalLabel">Editar Journey</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editJourneyForm" method="POST">
+                    {{ form.csrf_token }}
+                    <div class="mb-3">
+                        <label for="edit-nombre" class="form-label">Nombre</label>
+                        <input type="text" class="form-control" id="edit-nombre" name="nombre" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-descripcion" class="form-label">Descripción</label>
+                        <textarea class="form-control" id="edit-descripcion" name="descripcion" rows="3"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script para cargar datos en modal de edición -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const editModal = document.getElementById("editJourneyModal");
+        editModal.addEventListener("show.bs.modal", function (event) {
+            const button = event.relatedTarget;
+            const id = button.getAttribute("data-id");
+            const nombre = button.getAttribute("data-nombre");
+            const descripcion = button.getAttribute("data-descripcion");
+
+            const form = document.getElementById("editJourneyForm");
+            form.action = `/leadjourney/editar/${id}`;
+            document.getElementById("edit-nombre").value = nombre;
+            document.getElementById("edit-descripcion").value = descripcion || "";
+        });
+    });
+</script>
+{% endblock content %}
